@@ -104,7 +104,7 @@ you are, offers a one-minute tour, then dives you into the main menu.
 
 ## ⬇️ Install
 
-1. Download **`Xsoz Client Setup.exe`** from the [latest release](../../releases/latest).
+1. Download **`Xsoz-Client-Setup.exe`** from the [latest release](../../releases/latest).
 2. Run it. Windows may show *"Windows protected your PC"* because the file isn't code-signed.
    Click **More info**, then **Run anyway**.
 3. The installer finds your `.minecraft` folder (or asks you to pick it). Press **Install**.
