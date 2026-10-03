@@ -239,10 +239,18 @@ public partial class App : Application
                     {
                         IgnoreRunningLauncher = !string.Equals(Path.GetFullPath(autoTarget), Services.MinecraftDirectory.Default.Root, StringComparison.OrdinalIgnoreCase),
                     };
-                    var res = prov.RunAsync(CancellationToken.None).GetAwaiter().GetResult();
-                    File.WriteAllText(Path.Combine(autoTarget, "xsoz-install-result.txt"),
-                        (res.Succeeded ? "OK" : "FAILED") + Environment.NewLine + res.Message + Environment.NewLine + string.Join(Environment.NewLine, res.WrittenPaths));
-                    EndWith(res.Succeeded ? 0 : 1);
+                    try
+                    {
+                        var res = prov.RunAsync(CancellationToken.None).GetAwaiter().GetResult();
+                        File.WriteAllText(Path.Combine(autoTarget, "xsoz-install-result.txt"),
+                            (res.Succeeded ? "OK" : "FAILED") + Environment.NewLine + res.Message + Environment.NewLine + string.Join(Environment.NewLine, res.WrittenPaths));
+                        EndWith(res.Succeeded ? 0 : 1);
+                    }
+                    catch (Exception ex)
+                    {
+                        File.WriteAllText(Path.Combine(autoTarget, "xsoz-install-result.txt"), "CRASHED" + Environment.NewLine + ex);
+                        EndWith(2);
+                    }
                     return;
                 }
 

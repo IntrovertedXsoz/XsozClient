@@ -55,7 +55,7 @@ Free Roam lets you fight bots for as long as you want. You can choose:
 
 Bots play by normal player rules. They have 4.5 blocks of reach for blocks and 3 for hits, they can only click what they can see, and they only sprint forward. Better bots follow your pearls. Each bot also has a personality, so some like anchors, some rush you and some sit in holes. Hacker is the only level that cheats.
 
-There is also a watch mode where you fly around and watch the bots fight each other, if you're into that.
+There is also a watch mode where you fly around and watch the bots fight each other, if you're into that. Use the left and right arrow keys to switch between bots, and up and down to watch through their eyes, from behind, or fly around freely.
 
 <p align="center">
   <img src="assets/readme/free-roam.jpg" alt="Free Roam setup" width="49%" />
@@ -65,6 +65,18 @@ There is also a watch mode where you fly around and watch the bots fight each ot
 ## Mods
 
 It also comes with some small mods: hide explosion particles, zoom, toggle sprint, a cleaner crosshair and a HUD editor. Any other mods you'd like to add directly, you can suggest it in the issues tab.
+
+## Updates
+
+The client checks for new versions when you start it, and asks before it updates. You can turn that off, or check yourself, in Settings > Updates.
+
+There are three kinds of releases:
+
+- **Stable**: finished and tested. This is the [latest release](../../releases/latest).
+- **Dev**: stuff that's going into Stable, still being polished. Marked as a pre-release.
+- **Experimental**: ideas from the suggestions, to see if people like them. These can have bugs, and an idea might get taken out again. Also marked as a pre-release.
+
+You pick which ones you get in Settings > Updates.
 
 ## DIY
 

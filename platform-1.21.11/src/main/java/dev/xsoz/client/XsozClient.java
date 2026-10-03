@@ -59,6 +59,7 @@ public final class XsozClient implements ClientModInitializer {
         menuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.xsoz.clickgui", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
         trainerKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.xsoz.trainer", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, category));
         zoomKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.xsoz.zoom", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_C, category));
+        dev.xsoz.client.training.drill.WatchControls.register(category);
 
         registerModules();
         dev.xsoz.client.modules.combat.ComboBinds.INSTANCE.registerKeys();
@@ -68,6 +69,7 @@ public final class XsozClient implements ClientModInitializer {
         // ---- ticks
         ClientTickEvents.START_CLIENT_TICK.register(mc -> ModuleManager.preTick());
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
+            dev.xsoz.client.training.drill.WatchControls.tick(mc);
             while (menuKey.wasPressed()) {
                 if (mc.currentScreen == null) {
                     mc.setScreen(dev.xsoz.client.training.TrainingManager.running()
@@ -113,6 +115,7 @@ public final class XsozClient implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STARTED.register(mc -> ModuleManager.clientReady());
         ClientLifecycleEvents.CLIENT_STOPPING.register(mc -> ConfigManager.save());
         LOG.info("Xsoz Client {} ready: {} modules.", VERSION, ModuleManager.all().size());
+        dev.xsoz.client.update.Updates.tidyOnStart();
     }
 
     static void registerModules() {

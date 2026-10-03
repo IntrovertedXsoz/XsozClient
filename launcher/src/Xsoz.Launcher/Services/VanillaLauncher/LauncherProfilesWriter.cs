@@ -138,10 +138,50 @@ public static class LauncherProfilesWriter
             };
         }
 
-        Dictionary<string, string> before;
-        var beforeCount = ReadProfiles(original, out before);
+        // Notepad and some other editors start a UTF-8 file with a byte order mark. The JSON reader
+        // refuses it, and the launcher doesn't need it: drop it (the file is written back without).
+        if (original.Length >= 3 && original[0] == 0xEF && original[1] == 0xBB && original[2] == 0xBF)
+        {
+            original = original[3..];
+        }
 
-        Locate(original, spec.Key, out int insertionOffset, out int replacementLength);
+        Dictionary<string, string> before;
+        int beforeCount;
+        int insertionOffset;
+        int replacementLength;
+        try
+        {
+            beforeCount = ReadProfiles(original, out before);
+            Locate(original, spec.Key, out insertionOffset, out replacementLength);
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
+        {
+            return new ProfileMergeOutcome
+            {
+                Succeeded = false,
+                Message = "The Minecraft Launcher's profile file (launcher_profiles.json) couldn't be read, so nothing was changed. "
+                          + "Open the Minecraft Launcher once (it repairs the file), close it, and run the installer again.",
+                Before = -1,
+                After = -1,
+                ExistingChanged = 0,
+                AlreadyPresent = false,
+            };
+        }
+
+        if (insertionOffset < 0)
+        {
+            // no "profiles" list in it: not a file the Minecraft Launcher wrote
+            return new ProfileMergeOutcome
+            {
+                Succeeded = false,
+                Message = "The Minecraft Launcher's profile file (launcher_profiles.json) has no profile list, so nothing was changed. "
+                          + "Open the Minecraft Launcher once (it repairs the file), close it, and run the installer again.",
+                Before = beforeCount,
+                After = beforeCount,
+                ExistingChanged = 0,
+                AlreadyPresent = false,
+            };
+        }
 
         // Whether the key is already there is read from the PARSED document, not inferred from the
         // splice. If the file says the key is present but its byte span could not be located, the

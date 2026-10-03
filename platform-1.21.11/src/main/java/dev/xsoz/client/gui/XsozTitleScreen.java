@@ -23,6 +23,8 @@ public final class XsozTitleScreen extends Screen {
     public static boolean allowVanillaOnce;
     /** Set by the intro: the menu fades in out of black. */
     public static long fadeFromBlackAt;
+    /** An update found while the player was somewhere else: asked about when the menu is back. */
+    private static dev.xsoz.client.update.Updates.Release waiting;
 
     private final Anim intro = new Anim(0f, 4f);
 
@@ -54,6 +56,16 @@ public final class XsozTitleScreen extends Screen {
             client.setScreen(new TitleScreen());
         }).dimensions(width - 90, height - 34, 82, 16).build());
         intro.target(1f);
+        // once a launch: is there a newer version on the player's channel?
+        if (waiting != null) {
+            var r = waiting;
+            waiting = null;
+            client.execute(() -> client.setScreen(new UpdateScreen(this, r)));
+        }
+        dev.xsoz.client.update.Updates.onMenuShown(res -> {
+            if (client.currentScreen == this) client.setScreen(new UpdateScreen(this, res.release()));
+            else waiting = res.release();
+        });
     }
 
     private final BlackHole hole = new BlackHole();

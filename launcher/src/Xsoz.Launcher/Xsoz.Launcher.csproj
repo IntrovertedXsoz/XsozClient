@@ -27,7 +27,7 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <InvariantGlobalization>false</InvariantGlobalization>
 
-    <Version>0.1.0</Version>
+    <Version>0.3.0-dev.1</Version>
     <Product>XsozClient Launcher</Product>
     <Company>XsozClient</Company>
     <Copyright>XsozClient. Not an official Mojang or Microsoft product.</Copyright>

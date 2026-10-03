@@ -683,6 +683,185 @@ public final class TrainingGameTests {
         ctx.complete();
     }
 
+    /** A mace fight: bots of the given personality; runs the fight and watches every bot each tick. */
+    private void maceFight(TestContext ctx, dev.xsoz.client.training.bot.Personality who, int bots, int ticks,
+                           java.util.function.BiConsumer<Integer, java.util.List<dev.xsoz.client.training.bot.PvpBot>> each) {
+        fight(ctx, dev.xsoz.client.training.bot.FreeRoamConfig.Fight.MACE, dev.xsoz.client.training.KitSpec.Mode.MACE, who, 4, bots, ticks, each);
+    }
+
+    /** A free roam fight (FFA, small arena, you standing still) that runs and watches every bot each tick. */
+    private void fight(TestContext ctx, dev.xsoz.client.training.bot.FreeRoamConfig.Fight kind, dev.xsoz.client.training.KitSpec.Mode kit,
+                       dev.xsoz.client.training.bot.Personality who, int level, int bots, int ticks,
+                       java.util.function.BiConsumer<Integer, java.util.List<dev.xsoz.client.training.bot.PvpBot>> each) {
+        BlockPos base = high(ctx);
+        FakePlayer p = player(ctx, base);
+        Session s = session(ctx, p);
+        var cfg = new dev.xsoz.client.training.bot.FreeRoamConfig();
+        cfg.bots = bots;
+        cfg.teams = dev.xsoz.client.training.bot.FreeRoamConfig.Teams.FFA;
+        cfg.abilities = new java.util.ArrayList<>(kind.abilities());
+        cfg.size = dev.xsoz.client.training.bot.FreeRoamConfig.Size.SMALL;
+        cfg.level = level;
+        cfg.personalityMode = dev.xsoz.client.training.bot.FreeRoamConfig.PersonalityMode.SAME;
+        cfg.samePersonality = who;
+        dev.xsoz.client.training.drill.FreeRoamDrill.configure(cfg);
+        dev.xsoz.client.training.drill.FreeRoamDrill d = new dev.xsoz.client.training.drill.FreeRoamDrill(Drill.Mode.FIXED, 0.5, false);
+        d.start(s, Kit.standard(kit));
+        d.skipCountdownForTests();
+        TrainingHooks.bind(d, s);
+        try {
+            for (int i = 0; i < ticks; i++) {
+                p.setVelocity(Vec3d.ZERO);
+                d.serverTick();
+                each.accept(i, d.botsForTests());
+            }
+        } finally {
+            TrainingHooks.bind(null, null);
+            s.restore();
+        }
+    }
+
+    @GameTest(maxTicks = 60)
+    public void maceBotsNeverSitOnTheGroundWithWingsOpen(TestContext ctx) {
+        // two bots taking off at each other at once used to fall and lie there, wings open, looking up
+        Map<Object, Integer> stuck = new HashMap<>();
+        Map<Object, Vec3d> last = new HashMap<>();
+        int[] worst = {0};
+        String[] who = {""};
+        for (var kind : new dev.xsoz.client.training.bot.Personality[] {dev.xsoz.client.training.bot.Personality.ALL_ROUNDER,
+                dev.xsoz.client.training.bot.Personality.SKY_FIGHTER}) {
+            maceFight(ctx, kind, 3, 500, (i, list) -> {
+                for (var b : list) {
+                    if (!b.alive()) continue;
+                    Vec3d before = last.put(b, b.pos());
+                    boolean still = before != null && before.squaredDistanceTo(b.pos()) < 0.0025;
+                    int n = b.body().isGliding() && still ? stuck.getOrDefault(b, 0) + 1 : 0;
+                    stuck.put(b, n);
+                    if (n > worst[0]) {
+                        worst[0] = n;
+                        who[0] = b.debug();
+                    }
+                }
+            });
+        }
+        check(ctx, worst[0] < 10, "a bot sat still with its wings open for " + worst[0] + " ticks: " + who[0]);
+        ctx.complete();
+    }
+
+    @GameTest(maxTicks = 60)
+    public void skyFighterStaysInTheAir(TestContext ctx) {
+        int[] flying = {0};
+        int[] counted = {0};
+        String[] dbg = {""};
+        maceFight(ctx, dev.xsoz.client.training.bot.Personality.SKY_FIGHTER, 1, 700, (i, list) -> {
+            if (i < 60 || list.isEmpty() || !list.get(0).alive()) return;
+            var b = list.get(0);
+            counted[0]++;
+            if (!b.onGround()) flying[0]++; // gliding, or dropping on you with the wings shut
+            dbg[0] = b.debug();
+        });
+        check(ctx, counted[0] > 0, "the sky fighter died straight away: " + dbg[0]);
+        check(ctx, flying[0] > counted[0] * 0.85, "a sky fighter was only in the air " + flying[0] + " of " + counted[0] + " ticks: " + dbg[0]);
+        ctx.complete();
+    }
+
+    private static net.minecraft.entity.Entity cam(dev.xsoz.client.training.drill.FreeRoamDrill d, FakePlayer p) {
+        return d.cameraForTests == null ? p : d.cameraForTests;
+    }
+
+    @GameTest(maxTicks = 40)
+    public void watchModeArrowKeysSwitchBotsAndViews(TestContext ctx) {
+        BlockPos base = high(ctx);
+        FakePlayer p = player(ctx, base);
+        Session s = session(ctx, p);
+        var cfg = new dev.xsoz.client.training.bot.FreeRoamConfig();
+        cfg.bots = 3;
+        cfg.watch = true;
+        cfg.teams = dev.xsoz.client.training.bot.FreeRoamConfig.Teams.FFA;
+        cfg.abilities = new java.util.ArrayList<>(dev.xsoz.client.training.bot.FreeRoamConfig.Fight.SWORD.abilities());
+        cfg.size = dev.xsoz.client.training.bot.FreeRoamConfig.Size.SMALL;
+        cfg.level = 3;
+        dev.xsoz.client.training.drill.FreeRoamDrill.configure(cfg);
+        var d = new dev.xsoz.client.training.drill.FreeRoamDrill(Drill.Mode.FIXED, 0.5, false);
+        d.start(s, Kit.standard(dev.xsoz.client.training.KitSpec.Mode.SWORD));
+        d.skipCountdownForTests();
+        TrainingHooks.bind(d, s);
+        try {
+            var bots = d.botsForTests();
+            check(ctx, d.watched() == null && cam(d, p) == p, "watch mode should start on the free camera");
+            d.watchNext(1);
+            check(ctx, d.watched() == bots.get(0) && cam(d, p) == bots.get(0).body(), "Right should go to the first bot");
+            d.watchNext(1);
+            check(ctx, d.watched() == bots.get(1) && cam(d, p) == bots.get(1).body(), "Right again: the second bot");
+            d.watchNext(-1);
+            d.watchNext(-1);
+            check(ctx, d.watched() == bots.get(2), "Left from the first bot wraps round to the last");
+            d.watchView(1);
+            check(ctx, d.view() == dev.xsoz.client.training.drill.FreeRoamDrill.View.BEHIND && cam(d, p) == bots.get(2).body(), "Down: from behind, same bot");
+            d.watchView(1);
+            check(ctx, d.view() == dev.xsoz.client.training.drill.FreeRoamDrill.View.FREE && cam(d, p) == p, "Down again: free camera");
+            d.watchView(1);
+            check(ctx, d.view() == dev.xsoz.client.training.drill.FreeRoamDrill.View.EYES && cam(d, p) == bots.get(2).body(), "Down wraps to its eyes");
+            // the watched bot dies: after a moment the camera moves on to a bot that's alive
+            bots.get(2).kill();
+            for (int i = 0; i < 60; i++) d.serverTick();
+            var now = d.watched();
+            check(ctx, now != null && now.alive() && now != bots.get(2) && cam(d, p) == now.body(),
+                    "after the watched bot died the camera should move to a live one, got " + (now == null ? "none" : now.name));
+            // Shift (vanilla: the camera goes back to you) means you left it
+            d.cameraForTests = p;
+            d.serverTick();
+            check(ctx, d.view() == dev.xsoz.client.training.drill.FreeRoamDrill.View.FREE, "Shift out of a bot should go to the free camera");
+        } finally {
+            TrainingHooks.bind(null, null);
+            s.restore();
+        }
+        ctx.complete();
+    }
+
+    @GameTest(maxTicks = 60)
+    public void skyFighterAttacksInsteadOfCircling(TestContext ctx) {
+        // it used to circle above you for ever: it must come down on you, again and again
+        int[] smashes = {0};
+        String[] dbg = {""};
+        maceFight(ctx, dev.xsoz.client.training.bot.Personality.SKY_FIGHTER, 1, 900, (i, list) -> {
+            if (list.isEmpty()) return;
+            smashes[0] = list.get(0).maceSmashes;
+            dbg[0] = list.get(0).debug();
+        });
+        System.out.println("[sky] smashes in 45 s: " + smashes[0]);
+        check(ctx, smashes[0] >= 3, "a sky fighter smashed only " + smashes[0] + " times in 45 s: " + dbg[0]);
+        ctx.complete();
+    }
+
+    @GameTest(maxTicks = 60)
+    public void hackersDontBlowThemselvesUp(TestContext ctx) {
+        float[] lowest = {99f};
+        int[] blasts = {0};
+        int[] actions = {0};
+        String[] who = {""};
+        for (var kind : new dev.xsoz.client.training.bot.FreeRoamConfig.Fight[] {dev.xsoz.client.training.bot.FreeRoamConfig.Fight.CRYSTAL,
+                dev.xsoz.client.training.bot.FreeRoamConfig.Fight.EVERYTHING}) {
+            fight(ctx, kind, kind == dev.xsoz.client.training.bot.FreeRoamConfig.Fight.CRYSTAL ? dev.xsoz.client.training.KitSpec.Mode.CRYSTAL
+                            : dev.xsoz.client.training.KitSpec.Mode.EVERYTHING,
+                    dev.xsoz.client.training.bot.Personality.ALL_ROUNDER, 6, 3, 800, (i, list) -> {
+                        if (i != 799) return;
+                        for (var b : list) {
+                            blasts[0] += b.selfBlasts;
+                            actions[0] += b.crystalsPlaced + b.anchorsBlown;
+                            if (b.lowestAfterOwnBlast < lowest[0]) {
+                                lowest[0] = b.lowestAfterOwnBlast;
+                                who[0] = b.lowestNote + " | " + b.debug();
+                            }
+                        }
+                    });
+        }
+        System.out.println("[hacker] blasts placed " + actions[0] + ", hurt itself " + blasts[0] + " times, lowest after its own " + lowest[0]);
+        check(ctx, actions[0] > 10, "hackers barely fought: " + actions[0]);
+        check(ctx, lowest[0] >= 1.9f, "a hacker's own blast left it on " + lowest[0] + " (0 = popped or died): " + who[0]);
+        ctx.complete();
+    }
+
     @GameTest(maxTicks = 40)
     public void freeRoamBotsFightEachOtherAndRestoreTheWorld(TestContext ctx) {
         BlockPos base = high(ctx);
@@ -1046,6 +1225,15 @@ public final class TrainingGameTests {
         var bot = d.botsForTests().get(0);
         // the player far off to one side so the bot isn't busy fighting
         BlockPos from = BlockPos.ofFloored(bot.pos());
+        // the pearl is an entity: it only flies in a chunk that ticks (a fake player doesn't make
+        // chunks tick, a real one does) - force the chunks around the throw
+        java.util.List<net.minecraft.util.math.ChunkPos> forced = new java.util.ArrayList<>();
+        for (int cx = -2; cx <= 2; cx++) {
+            for (int cz = -2; cz <= 2; cz++) {
+                var cp = new net.minecraft.util.math.ChunkPos((from.getX() >> 4) + cx, (from.getZ() >> 4) + cz);
+                if (ctx.getWorld().setChunkForced(cp.x, cp.z, true)) forced.add(cp);
+            }
+        }
         Scene.teleport(p, Vec3d.ofBottomCenter(from.add(0, 0, 17)), 0f, 0f);
         // a spot ~13 blocks away, toward the middle of the floor
         Vec3d toMid = Vec3d.ofBottomCenter(d.center()).subtract(Vec3d.ofBottomCenter(from)).multiply(1, 0, 1);
@@ -1066,6 +1254,7 @@ public final class TrainingGameTests {
             String dbg = bot.debug() + " goal " + goal + " from " + from + " pearl " + (fly == null ? "none" : fly.getEntityPos() + " removed " + fly.isRemoved() + " v " + fly.getVelocity());
             TrainingHooks.bind(null, null);
             s.restore();
+            for (var cp : forced) ctx.getWorld().setChunkForced(cp.x, cp.z, false);
             check(ctx, queued, "the bot could not work out a throw to a spot 14 blocks away");
             check(ctx, bot.pearlsThrown > 0, "the bot never threw: " + dbg);
             check(ctx, off < 3.0, "the pearl landed " + off + " blocks from where it aimed: " + dbg);

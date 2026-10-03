@@ -70,7 +70,43 @@ public enum BotLevel {
     /** How far it can hit an entity (to its hitbox). Vanilla survival: 3. */
     public double hitReach() { return cheats() ? 6.0 : 3.0; }
 
-    /** Chance it notices and follows your pearl (when it is healthy enough to chase). */
+    /**
+     * How far off its aim drifts, in degrees (a hand on a mouse is never perfect). Beginners wobble
+     * and miss now and then; Godlike is nearly exact; Hacker is exact.
+     */
+    public float aimError() {
+        return switch (this) {
+            case BEGINNER -> 4.5f;
+            case CASUAL -> 3.2f;
+            case GOOD -> 2.0f;
+            case PRO -> 1.2f;
+            case GODLIKE -> 0.6f;
+            case HACKER -> 0f;
+        };
+    }
+
+    /** How much a fast flick of the head goes past the target before it settles (0.1 = 10%). */
+    public float overshoot() {
+        return switch (this) {
+            case BEGINNER -> 0.16f;
+            case CASUAL -> 0.11f;
+            case GOOD -> 0.07f;
+            case PRO -> 0.04f;
+            case GODLIKE -> 0.02f;
+            case HACKER -> 0f;
+        };
+    }
+
+    /** Chance per tick it stops to think for a moment (players that are new to PvP hesitate). */
+    public double hesitation() {
+        return switch (this) {
+            case BEGINNER -> 0.012;
+            case CASUAL -> 0.005;
+            default -> 0.0;
+        };
+    }
+
+        /** Chance it notices and follows your pearl (when it is healthy enough to chase). */
     public double pearlFollowChance() {
         return switch (this) {
             case BEGINNER -> 0.0;

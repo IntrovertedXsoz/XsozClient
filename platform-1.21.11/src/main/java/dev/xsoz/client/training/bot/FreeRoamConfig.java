@@ -214,11 +214,14 @@ public final class FreeRoamConfig {
     /** The personality of bot i (0-based). */
     public Personality personalityOf(int i, java.util.Random rng) {
         PersonalityMode m = personalityMode == null ? PersonalityMode.MIXED : personalityMode;
-        return switch (m) {
+        EnumSet<Ability> a = abilities();
+        List<Personality> fit = Personality.forAbilities(a);
+        Personality p = switch (m) {
             case SAME -> samePersonality == null ? Personality.ALL_ROUNDER : samePersonality;
             case PICK -> picks != null && i < picks.size() && picks.get(i) != null ? picks.get(i) : Personality.ALL_ROUNDER;
-            case MIXED -> Personality.values()[rng.nextInt(Personality.values().length)];
+            case MIXED -> fit.get(rng.nextInt(fit.size()));
         };
+        return p.fits(a) ? p : Personality.ALL_ROUNDER; // an elytra lover in a crystal fight plays all-round
     }
 
     /** PICK mode: the list, grown to the bot count. */

@@ -106,6 +106,18 @@ public final class PvpBot {
     private int airUntil;
     private boolean windJump;
     private int boostTicks;
+    /** Sky fighter: next rocket allowed, next take-off allowed, and the air above it (cached). */
+    private int nextRocketAt;
+    private int skyRetryAt;
+    private int headroomAt;
+    private double headroom = 30;
+    /** Sky fighter: heading out to line up the next run (instead of straight at them), until when. */
+    private boolean skyOut;
+    private int skyOutUntil;
+    /** The target's movement per tick, smoothed (for leading dives and swoops). */
+    private Vec3d tgtVel = Vec3d.ZERO;
+    private Vec3d tgtLast;
+    private LivingEntity tgtLastOf;
     private Vec3d walk = Vec3d.ZERO;
     private boolean sprinting;
     private boolean wantJump;
@@ -120,6 +132,11 @@ public final class PvpBot {
     /** Tick an action last aimed the head (then it doesn't look where it runs). */
     private int lookSetAt = -1;
     private Vec3d lastAim;
+    /** Where its aim is off by right now (a hand on a mouse), and until when. */
+    private float aimErrYaw;
+    private float aimErrPitch;
+    private int aimErrUntil;
+    private boolean flicking;
 
     // ---- movement planning
     private Goal goal = Goal.FIGHT;
@@ -210,6 +227,10 @@ public final class PvpBot {
     public int pearlsFollowed;
     public int dtaps;
     public int anchorDtapsDone;
+    /** Its own blasts that hurt it, and the lowest health one ever left it on (tests). */
+    public int selfBlasts;
+    public float lowestAfterOwnBlast = 99f;
+    public String lowestNote = "";
     /** Longest reach it ever used to click a block / hit something (tests: never more than a player's). */
     public double maxClickReach;
     public double maxHitReach;
@@ -283,6 +304,8 @@ public final class PvpBot {
     public Fighter target() { return target; }
 
     public boolean eating() { return eatingUntil >= 0; }
+
+    public boolean onGround() { return onGround; }
 
     /** GameTests: put the bot at a given health. */
     public void healthForTests(float h) {
@@ -462,16 +485,60 @@ public final class PvpBot {
 
     private Vec3d eye() { return pos.add(0, 1.62, 0); }
 
-    /** Turns the head toward the look target at the level's speed (not while re-totem-ing). */
+    /**
+     * Turns the head toward the look target like a hand on a mouse: full speed while it's far off,
+     * a flick that lands a little past it (more at lower levels), then settling in. The aim is never
+     * perfectly on - it drifts by the level's aim error - and never perfectly still. Hacker turns
+     * like an aimbot. Not while re-totem-ing.
+     */
     private void turnHead() {
-        if (lookTarget == null || bw.ticks() < headLockUntil) return;
+        int t = bw.ticks();
+        if (lookTarget == null || t < headLockUntil) return;
         Vec3d d = lookTarget.subtract(eye());
         float wantYaw = (float) Math.toDegrees(Math.atan2(-d.x, d.z));
         float wantPitch = (float) -Math.toDegrees(Math.atan2(d.y, Math.max(0.01, Math.sqrt(d.x * d.x + d.z * d.z))));
-        float dy = MathHelper.wrapDegrees(wantYaw - yaw);
         float max = level.turnSpeed;
-        yaw += MathHelper.clamp(dy, -max, max);
-        pitch = MathHelper.clamp(pitch + MathHelper.clamp(wantPitch - pitch, -max, max), -90f, 90f);
+        if (level.cheats()) {
+            yaw += MathHelper.clamp(MathHelper.wrapDegrees(wantYaw - yaw), -max, max);
+            pitch = MathHelper.clamp(pitch + MathHelper.clamp(wantPitch - pitch, -max, max), -90f, 90f);
+            return;
+        }
+        boolean careful = pearlAimUntil >= 0; // lining up a throw: no wobble
+        float err = level.aimError();
+        if (t >= aimErrUntil) {
+            aimErrYaw = (float) MathHelper.clamp(bw.rng().nextGaussian() * err, -2 * err, 2 * err);
+            aimErrPitch = (float) MathHelper.clamp(bw.rng().nextGaussian() * err * 0.6, -2 * err, 2 * err);
+            aimErrUntil = t + 6 + bw.rng().nextInt(16);
+        }
+        if (!careful) {
+            wantYaw += aimErrYaw;
+            wantPitch += aimErrPitch;
+        }
+        float dy = MathHelper.wrapDegrees(wantYaw - yaw);
+        float dp = wantPitch - pitch;
+        float sy;
+        float sp;
+        if (Math.abs(dy) > max || Math.abs(dp) > max) {
+            // still far off: full speed
+            sy = MathHelper.clamp(dy, -max, max);
+            sp = MathHelper.clamp(dp, -max, max);
+            flicking = true;
+        } else if (flicking && !careful) {
+            // the end of a flick: a bit too far
+            float over = 1f + level.overshoot() * (0.5f + bw.rng().nextFloat());
+            sy = dy * over;
+            sp = dp * over;
+            flicking = false;
+        } else {
+            sy = dy * 0.6f;
+            sp = dp * 0.6f;
+        }
+        if (!careful) {
+            sy += (float) bw.rng().nextGaussian() * err * 0.06f;
+            sp += (float) bw.rng().nextGaussian() * err * 0.04f;
+        }
+        yaw += sy;
+        pitch = MathHelper.clamp(pitch + sp, -90f, 90f);
     }
 
     /** True once the head points at p (within 9 degrees); p becomes what it looks at. */
@@ -498,6 +565,7 @@ public final class PvpBot {
         wantJump = false;
         chooseTarget(t);
         LivingEntity tgt = target == null ? null : target.entity();
+        trackTarget(tgt);
         if (tgt != null) lookTarget = tgt.getEyePos().add(0, -0.3, 0);
         if (tgt != null && t % 2 == 0) watchPearls(t);
         if (tgt != null) think(t, tgt);
@@ -507,6 +575,24 @@ public final class PvpBot {
         turnHead();
         physics();
         if (alive() && t % 4 == 0) nameTag();
+    }
+
+    /** How the target is moving, from where it was last tick (a pearl or a teleport doesn't count). */
+    private void trackTarget(LivingEntity tgt) {
+        if (tgt == null) {
+            tgtLast = null;
+            tgtVel = Vec3d.ZERO;
+            return;
+        }
+        Vec3d tp = tgt.getEntityPos();
+        if (tgtLast != null && tgtLastOf == tgt) {
+            Vec3d step = tp.subtract(tgtLast);
+            if (step.lengthSquared() < 4) tgtVel = tgtVel.multiply(0.5).add(step.multiply(0.5));
+        } else {
+            tgtVel = Vec3d.ZERO;
+        }
+        tgtLast = tp;
+        tgtLastOf = tgt;
     }
 
     private void tickEffects(int t) {
@@ -575,9 +661,13 @@ public final class PvpBot {
         double dist = tgt.getEntityPos().distanceTo(pos);
         if (eatingUntil >= 0) {
             if (t >= eatingUntil) finishEating(t);
+            else if (air != Air.NONE && sky()) skyAerial(t, tgt, false); // eats on the wing
             return;
         }
-        if (retotemAt >= 0) return; // hands busy with the totem
+        if (retotemAt >= 0) { // hands busy with the totem
+            if (air != Air.NONE && sky()) skyAerial(t, tgt, false);
+            return;
+        }
         if (shieldUntil >= 0 && t >= shieldUntil) lowerShield();
         if (air != Air.NONE) {
             aerial(t, tgt);
@@ -592,6 +682,11 @@ public final class PvpBot {
             return;
         }
         if (t < nextActionAt || t < busyUntil) return;
+        // newer players stop to think now and then
+        if (bw.rng().nextDouble() < level.hesitation() && myCrystal == null && anchorStage == 0) {
+            nextActionAt = t + 8 + bw.rng().nextInt(18);
+            return;
+        }
 
         // ---- sequences already under way
         if (myCrystal != null) {
@@ -609,6 +704,7 @@ public final class PvpBot {
             BlockPos b = buildThenCrystal;
             Vec3d click = clickFace(b, null);
             if (!w.getBlockState(b).isOf(Blocks.OBSIDIAN) || !w.getBlockState(b.up()).isAir() || click == null) buildThenCrystal = null;
+            else if (!safeBlast(Scene.crystalCenter(b), CombatMath.CRYSTAL_POWER, tgt)) buildThenCrystal = null;
             else if (hold(st -> st.isOf(Items.END_CRYSTAL)) && aimed(click)) {
                 buildThenCrystal = null;
                 placeCrystal(b, t);
@@ -619,7 +715,7 @@ public final class PvpBot {
         if (dtapSpot != null) {
             BlockPos b = dtapSpot;
             Vec3d click = clickFace(b, null);
-            if (t > dtapUntil || click == null || !crystalBase(b)) {
+            if (t > dtapUntil || click == null || !crystalBase(b) || !safeBlast(Scene.crystalCenter(b), CombatMath.CRYSTAL_POWER, tgt)) {
                 dtapSpot = null;
             } else {
                 if (hold(st -> st.isOf(Items.END_CRYSTAL)) && aimed(click)) {
@@ -638,6 +734,14 @@ public final class PvpBot {
         if (!offhand.isOf(Items.TOTEM_OF_UNDYING) && has(st -> st.isOf(Items.TOTEM_OF_UNDYING)) && (me < 12 || explosives())) {
             startRetotem(t);
             return;
+        }
+        // a sky fighter doesn't stay on the ground: straight back up
+        if (sky() && onGround && t >= skyRetryAt) {
+            if (headroom(t) < 8) skyRetryAt = t + 100; // no room to fly here
+            else {
+                takeOff(t);
+                return;
+            }
         }
         if (explosives() && !personality.avoidsHoles && me < personality.surroundAt && !surrounded && onGround && dist < 8
                 && t >= surroundGiveUpUntil && count(st -> st.isOf(Items.OBSIDIAN)) >= 4 && canSurround()) {
@@ -665,7 +769,7 @@ public final class PvpBot {
         }
         if (t < retreatUntil && dist < 7) return;
         // ---- offence
-        if (aerialOn() && onGround && dist > 4 && dist < 18 && t >= nextSwingAt && startAerial(t, dist)) return;
+        if (aerialOn() && onGround && (dist > 4 || personality == Personality.POGO && dist > 1.5) && dist < 18 && t >= nextSwingAt && startAerial(t, dist, tgt)) return;
         // a swordsman swings first and keeps explosives for the finish
         if (meleeOn() && personality.meleeBias > 3 && melee(t, tgt, dist)) return;
         if (explosives()) {
@@ -714,7 +818,9 @@ public final class PvpBot {
         else want = 2.2;
         want = Math.max(1.8, want + personality.spacing);
         if (t >= strafeUntil) {
-            strafeUntil = t + 15 + bw.rng().nextInt(30);
+            // better players switch direction more often and are harder to hit
+            strafeUntil = t + (level.atLeast(BotLevel.PRO) ? 8 + bw.rng().nextInt(14)
+                    : level.atLeast(BotLevel.GOOD) ? 12 + bw.rng().nextInt(22) : 15 + bw.rng().nextInt(30));
             strafeSign = bw.rng().nextInt(5) == 0 ? 0 : bw.rng().nextBoolean() ? 1 : -1;
         }
         Vec3d away = new Vec3d(pos.x - tp.x, 0, pos.z - tp.z);
@@ -802,6 +908,10 @@ public final class PvpBot {
         }
         wantSprint = goal == Goal.RETREAT || d.length() > 2 || tgt != null && tgt.getEntityPos().distanceTo(pos) > 4;
         if (wp.getY() > pos.y + 0.5 && onGround && d.length() < 1.3) wantJump = true;
+        // running a long way on the flat, players jump as they sprint - out of habit
+        if (level.atLeast(BotLevel.CASUAL) && wantSprint && onGround && eatingUntil < 0 && pathIndex + 2 < path.size()
+                && (goal == Goal.RETREAT || tgt == null || tgt.getEntityPos().distanceTo(pos) > 8)
+                && path.get(pathIndex + 1).getY() == wp.getY() && path.get(pathIndex + 2).getY() == wp.getY()) wantJump = true;
         // crit jumps in melee
         if (onGround && meleeOn() && tgt != null && tgt.getEntityPos().distanceTo(pos) < 3.6 && t + 5 >= nextSwingAt) wantJump = true;
         // stuck: mine out or pearl out - never jump on the spot forever
@@ -845,7 +955,9 @@ public final class PvpBot {
         boolean running = goal == Goal.RETREAT || dist > 9 || tgt == null;
         if (!running) return;
         if (goal == Goal.RETREAT && tgt != null && t % 40 < 7) return; // a look back
-        lookTarget = eye().add(moveDir.x * 6, -1.2, moveDir.z * 6);
+        // not a laser: the view drifts side to side a little as it runs
+        double wob = Math.sin(t * 0.09 + name.hashCode()) * 1.1;
+        lookTarget = eye().add(moveDir.x * 6 - moveDir.z * wob, -1.2 + Math.sin(t * 0.05) * 0.4, moveDir.z * 6 + moveDir.x * wob);
     }
 
     // =========================================================================== reacting to their crystals
@@ -866,7 +978,7 @@ public final class PvpBot {
             float toMe = Scene.damage(center, CombatMath.CRYSTAL_POWER, body, mine);
             if (toMe < 3f) continue;
             float toThem = Scene.damage(center, CombatMath.CRYSTAL_POWER, tgt, theirs);
-            if (canHit(c) && (toThem >= toMe * 0.9f || toThem >= tgt.getHealth() + tgt.getAbsorptionAmount())) {
+            if (canHit(c) && (toThem >= toMe * 0.9f || toThem >= lethalOf(tgt)) && safeBlast(center, CombatMath.CRYSTAL_POWER, tgt)) {
                 if (!aimed(c.getBoundingBox().getCenter())) return true;
                 body.swingHand(Hand.MAIN_HAND);
                 noteHit(c);
@@ -933,6 +1045,11 @@ public final class PvpBot {
         if (p == null) return false;
         if (p.click.distanceTo(eye()) > level.blockReach()) {
             pending = null; // it moved out of reach while lining up
+            return false;
+        }
+        if (!p.build && !safeBlast(p.anchor ? Vec3d.ofCenter(p.block) : Scene.crystalCenter(p.block),
+                p.anchor ? CombatMath.ANCHOR_POWER : CombatMath.CRYSTAL_POWER, tgt)) {
+            pending = null; // the plan went stale: something moved
             return false;
         }
         if (p.anchor) {
@@ -1022,7 +1139,8 @@ public final class PvpBot {
         lastAction = "crystals";
         // the fastest players place and break in the same tick (when the hit would count)
         LivingEntity tgt = target == null ? null : target.entity();
-        if (level.knows(BotLevel.Tech.INSTA_BREAK) && tgt != null && tgt.timeUntilRegen <= 10 && canHit(c)) {
+        if (level.knows(BotLevel.Tech.INSTA_BREAK) && tgt != null && tgt.timeUntilRegen <= 10 && canHit(c)
+                && safeBlast(c.getEntityPos(), CombatMath.CRYSTAL_POWER, tgt)) {
             body.swingHand(Hand.MAIN_HAND);
             c.damage(w, w.getDamageSources().mobAttack(body), 1f);
             myCrystal = null;
@@ -1038,6 +1156,11 @@ public final class PvpBot {
         if (t - myCrystalAt < wait) return;
         if (!canHit(myCrystal)) {
             if (t - myCrystalAt > 40) myCrystal = null; // walked away from it
+            return;
+        }
+        if (!safeBlast(myCrystal.getEntityPos(), CombatMath.CRYSTAL_POWER, tgt)) {
+            // they moved off, or it got knocked in close: not worth it now
+            if (t - myCrystalAt > 30) myCrystal = null;
             return;
         }
         if (!aimed(myCrystal.getBoundingBox().getCenter())) return;
@@ -1070,6 +1193,11 @@ public final class PvpBot {
             anchorStage = 0; // can't see or reach it any more
             return;
         }
+        LivingEntity tgt = target == null ? null : target.entity();
+        if (!safeAnchor(anchorAt, tgt)) {
+            anchorStage = 0; // they moved off, or it's too close now: leave it
+            return;
+        }
         if (!aimed(click)) return;
         if (anchorStage == 1) {
             if (!hold(s -> s.isOf(Items.GLOWSTONE))) return;
@@ -1094,6 +1222,7 @@ public final class PvpBot {
         // anchor double tap: the spot it was in can be clicked again right away - a new anchor in the air
         if (level.knows(BotLevel.Tech.ANCHOR_DTAP) && anchorDtaps == 0 && personality != Personality.CRYSTAL_SPAMMER
                 && w.getBlockState(p).isReplaceable() && !hitsAnyone(new Box(p))
+                && safeBlast(c, CombatMath.ANCHOR_POWER, tgt)
                 && has(s -> s.isOf(Items.GLOWSTONE)) && hold(s -> s.isOf(Items.RESPAWN_ANCHOR))) {
             anchorDtaps++;
             anchorDtapsDone++;
@@ -1215,8 +1344,8 @@ public final class PvpBot {
         if (toT < 0.5f) return null;
         float toMe = Scene.damage(center, power, body, mine);
         boolean kills = toT >= lethal && totemsOf(tgt) == 0;
-        if (toMe >= myHp - 0.5f && !kills) return null;
-        if (toMe >= toT && !kills) return null;
+        if (toMe >= myHp - 0.5f) return null; // never its own pop
+        if (kills ? myHp - toMe < 2f : toMe >= toT || myHp - toMe < keepHp()) return null;
         float score = toT - toMe * 0.6f;
         for (LivingEntity f : foes) {
             if (f == tgt || f.squaredDistanceTo(center) > 64) continue;
@@ -1313,6 +1442,62 @@ public final class PvpBot {
         float toYaw = (float) Math.toDegrees(Math.atan2(-d.x, d.z));
         if (Math.abs(MathHelper.wrapDegrees(toYaw - yaw)) > 75 && !level.cheats()) return false;
         return clearTo(p);
+    }
+
+    /** Health it keeps out of its own blasts: careful players keep more, rushers less, more without a totem in hand. */
+    private float keepHp() {
+        float keep = personality == Personality.CAREFUL ? 10f : personality == Personality.RUSHER ? 4f : 6f;
+        if (!offhand.isOf(Items.TOTEM_OF_UNDYING)) keep += 4f;
+        return keep;
+    }
+
+    /** All its health, golden hearts included, as the target's killer would count it. */
+    private float lethalOf(LivingEntity e) {
+        Fighter f = bw.fighterOf(e);
+        if (f != null && f.bot != null) return f.bot.health();
+        return e.getHealth() + e.getAbsorptionAmount();
+    }
+
+    /**
+     * May it set off a blast of power at center right now? A player doesn't blow themselves up
+     * for nothing: the blast must hurt the target at least as much as it hurts itself, and leave it
+     * its {@link #keepHp()}. The one exception is a kill on a target with no totems left - and even
+     * then never its own pop. Inside its own hurt window only the part
+     * above the last hit lands, so that is what counts. Checked when the blast is set off, not only
+     * when it was planned: things move in between.
+     *
+     * <p>Every other crystal the blast reaches goes off with it, in the same tick. Inside the hurt
+     * window only the biggest of those hits counts, so the blast is as bad as its worst crystal.
+     */
+    private boolean safeBlast(Vec3d center, float power, LivingEntity tgt) {
+        Scene.Armour mine = Scene.armourOf(w, body);
+        Scene.Armour theirs = tgt == null ? null : Scene.armourOf(w, tgt);
+        float toMe = Scene.damage(center, power, body, mine);
+        float toT = tgt == null ? 0f : Scene.damage(center, power, tgt, theirs);
+        for (EndCrystalEntity c : w.getEntitiesByClass(EndCrystalEntity.class, new Box(center, center).expand(power * 2),
+                x -> x.getEntityPos().squaredDistanceTo(center) > 0.01)) {
+            Vec3d cc = c.getEntityPos();
+            toMe = Math.max(toMe, Scene.damage(cc, CombatMath.CRYSTAL_POWER, body, mine));
+            if (tgt != null) toT = Math.max(toT, Scene.damage(cc, CombatMath.CRYSTAL_POWER, tgt, theirs));
+        }
+        if (hurtTicks > 0) toMe = Math.max(0f, toMe - lastHurt);
+        float me = health();
+        if (toMe < 0.5f) return me - toMe >= 1f; // a scratch is fine, unless it's on its last heart
+        boolean kills = tgt != null && toT >= lethalOf(tgt) && totemsOf(tgt) == 0;
+        if (toMe >= me - 0.5f) return false; // never its own pop, not even for a kill
+        if (kills) return me - toMe >= 2f; // going for the kill: fine, as long as it isn't left on nothing
+        return toT >= toMe && me - toMe >= keepHp();
+    }
+
+    /** {@link #safeBlast} for an anchor: worked out with the anchor gone, as it is when it goes off. */
+    private boolean safeAnchor(BlockPos b, LivingEntity tgt) {
+        BlockState was = w.getBlockState(b);
+        w.setBlockState(b, Blocks.AIR.getDefaultState(), 0);
+        try {
+            return safeBlast(Vec3d.ofCenter(b), CombatMath.ANCHOR_POWER, tgt);
+        } finally {
+            w.setBlockState(b, was, 0);
+        }
     }
 
     private int totemsOf(LivingEntity e) {
@@ -1498,20 +1683,15 @@ public final class PvpBot {
 
     // =========================================================================== mace and elytra
 
-    private boolean startAerial(int t, double dist) {
+    private boolean startAerial(int t, double dist, LivingEntity tgt) {
         if (!has(s -> s.isOf(Items.MACE))) return false;
-        boolean elytra = has(s -> s.isOf(Items.ELYTRA)) && has(s -> s.isOf(Items.FIREWORK_ROCKET)) && dist > 7;
-        boolean wind = has(s -> s.isOf(Items.WIND_CHARGE)) && dist < 9;
+        // no take-off at someone who is already flying or up high: there's nothing to dive onto
+        boolean elytra = has(s -> s.isOf(Items.ELYTRA)) && has(s -> s.isOf(Items.FIREWORK_ROCKET)) && dist > 7
+                && !tgt.isGliding() && tgt.getY() - pos.y < 3;
+        boolean wind = has(s -> s.isOf(Items.WIND_CHARGE)) && dist < (personality == Personality.POGO ? 12 : 9);
+        if (personality == Personality.POGO && wind) elytra = false; // it would rather bounce
         if (elytra) {
-            int i = first(s -> s.isOf(Items.ELYTRA));
-            ItemStack chest = body.getEquippedStack(EquipmentSlot.CHEST).copy();
-            body.equipStack(EquipmentSlot.CHEST, inv[i].copy());
-            inv[i] = chest;
-            vel = new Vec3d(vel.x, 0.42, vel.z);
-            air = Air.WIND_UP;
-            airUntil = t + 200;
-            lastAction = "takes off";
-            busyUntil = t + 2;
+            takeOff(t);
             return true;
         }
         if (wind) {
@@ -1531,16 +1711,69 @@ public final class PvpBot {
         return false;
     }
 
+    /** Puts the elytra on and jumps; the rocket goes off at the top of the jump. */
+    private void takeOff(int t) {
+        int i = first(s -> s.isOf(Items.ELYTRA));
+        if (i >= 0) {
+            ItemStack chest = body.getEquippedStack(EquipmentSlot.CHEST).copy();
+            body.equipStack(EquipmentSlot.CHEST, inv[i].copy());
+            inv[i] = chest;
+        }
+        vel = new Vec3d(vel.x, 0.42, vel.z);
+        onGround = false;
+        skyOut = true; // first some height and room, then the run in
+        skyOutUntil = t + 40;
+        air = Air.WIND_UP;
+        airUntil = t + 200;
+        lastAction = "takes off";
+        busyUntil = t + 2;
+    }
+
+    /** Sky fighter with the kit for it: an elytra (worn or not) and rockets left. */
+    private boolean sky() {
+        return personality == Personality.SKY_FIGHTER && has(s -> s.isOf(Items.FIREWORK_ROCKET))
+                && (has(s -> s.isOf(Items.ELYTRA)) || body.getEquippedStack(EquipmentSlot.CHEST).isOf(Items.ELYTRA));
+    }
+
+    /** Blocks of air above its head (the arena's roof, a tree...), looked up twice a second. */
+    private double headroom(int t) {
+        if (t >= headroomAt) {
+            headroomAt = t + 10;
+            double h = 0;
+            while (h < 30 && !blocked(pos.add(0, h + 1, 0))) h += 1;
+            headroom = h;
+        }
+        return headroom;
+    }
+
     private void aerial(int t, LivingEntity tgt) {
+        if (air != Air.WIND_UP && sky()) {
+            skyAerial(t, tgt, true);
+            return;
+        }
         Vec3d tp = tgt.getEntityPos();
         double hd = Math.sqrt((tp.x - pos.x) * (tp.x - pos.x) + (tp.z - pos.z) * (tp.z - pos.z));
         switch (air) {
             case WIND_UP -> {
+                if (sky()) {
+                    // up and away from them: the rocket goes where it looks
+                    Vec3d away = new Vec3d(pos.x - tp.x, 0, pos.z - tp.z);
+                    if (away.lengthSquared() < 1e-4) away = new Vec3d(1, 0, 0);
+                    lookTarget = eye().add(away.normalize().multiply(5)).add(0, 4, 0);
+                }
+                // both took off at each other at once: one of them stays down (the newer one)
+                boolean otherFlies = !sky() && (tgt.isGliding() || tgt.getEquippedStack(EquipmentSlot.CHEST).isOf(Items.ELYTRA)
+                        && tgt.getId() < body.getId() && tgt.getY() > pos.y - 0.5);
+                if (otherFlies) {
+                    air = Air.DIVE; // just a jump now; lands and fights on foot
+                    return;
+                }
                 if (!onGround && vel.y < 0.1) {
                     if (!hold(s -> s.isOf(Items.FIREWORK_ROCKET))) return;
                     consumeHeld();
                     setGliding(true);
                     boostTicks = 22;
+                    nextRocketAt = t + rocketGap();
                     air = Air.BOOST;
                     w.playSound(null, body.getBlockPos(), SoundEvents.ENTITY_FIREWORK_ROCKET_LAUNCH, SoundCategory.PLAYERS, 1f, 1f);
                 }
@@ -1554,29 +1787,213 @@ public final class PvpBot {
                     air = Air.DIVE;
                     hold(s -> s.isOf(Items.MACE));
                 }
-                if (air == Air.GLIDE && alt < 5 && hd > 6 && t >= busyUntil && hold(s -> s.isOf(Items.FIREWORK_ROCKET))) {
+                boolean stalled = boostTicks <= 0 && Math.sqrt(vel.x * vel.x + vel.z * vel.z) < 0.35 && vel.y < 0;
+                if (air == Air.GLIDE && (alt < 5 || stalled) && hd > 6 && t >= busyUntil && hold(s -> s.isOf(Items.FIREWORK_ROCKET))) {
                     consumeHeld();
                     boostTicks = 18;
                     air = Air.BOOST;
-                }
-            }
-            case DIVE -> {
-                hold(s -> s.isOf(Items.MACE));
-                lookTarget = tgt.getEyePos();
-                if (gliding && hd < 3.5) {
+                } else if (air != Air.DIVE && (tgt.isGliding() || stalled || hd < 5 && alt < 4)) {
+                    // no dive to be had (they fly too, or it lost its speed): close the wings and drop
                     setGliding(false);
-                    vel = new Vec3d((tp.x - pos.x) * 0.25, Math.min(vel.y, -0.6), (tp.z - pos.z) * 0.25);
-                } else if (!gliding) {
-                    walk = new Vec3d(tp.x - pos.x, 0, tp.z - pos.z).normalize().multiply(0.06);
+                    air = Air.DIVE;
+                    hold(s -> s.isOf(Items.MACE));
                 }
-                double fall = peakY - pos.y;
-                boolean close = body.getBoundingBox().expand(1.2, 0.6, 1.2).intersects(tgt.getBoundingBox());
-                if (close && vel.y < 0 && held().isOf(Items.MACE) && fall > 1.5) smash(tgt, fall, t);
             }
+            case DIVE -> dive(t, tgt, tp, hd);
             default -> { }
         }
         if (onGround && air != Air.WIND_UP) landed(t);
         if (t > airUntil) landed(t);
+    }
+
+    /** Wings shut over them, then down with the mace. */
+    private void dive(int t, LivingEntity tgt, Vec3d tp, double hd) {
+        hold(s -> s.isOf(Items.MACE));
+        lookTarget = tgt.getEyePos();
+        if (gliding && hd < 3.5) {
+            setGliding(false);
+            vel = new Vec3d((tp.x - pos.x) * 0.25, Math.min(vel.y, -0.6), (tp.z - pos.z) * 0.25);
+        } else if (!gliding) {
+            walk = new Vec3d(tp.x - pos.x, 0, tp.z - pos.z).normalize().multiply(0.06);
+        }
+        double fall = peakY - pos.y;
+        boolean close = body.getBoundingBox().expand(1.2, 0.6, 1.2).intersects(tgt.getBoundingBox());
+        if (close && vel.y < 0 && held().isOf(Items.MACE) && fall > 1.5) smash(tgt, fall, t);
+    }
+
+    /** Ticks between its rockets: a quick hand fires them back to back, a slow one waits. */
+    private int rocketGap() { return 12 + reactionTicks * 2; }
+
+    private record Drop(Vec3d at, int ticks) {
+    }
+
+    /** Where it comes down to height y if it shuts its wings right now (plain falling), and when. */
+    private Drop dropFrom(double y) {
+        Vec3d p = pos;
+        Vec3d v = vel;
+        for (int i = 1; i <= 100; i++) {
+            v = new Vec3d(v.x * 0.91, (v.y - 0.08) * 0.98, v.z * 0.91);
+            p = p.add(v);
+            if (p.y <= y) return new Drop(p, i);
+        }
+        return new Drop(p, 100);
+    }
+
+    /**
+     * Sky fighter: it stays up and fights in runs, the way mace players on an elytra do.
+     * <ul>
+     *   <li><b>Out</b>: it flies away from you to get height and room.</li>
+     *   <li><b>Run</b>: it turns and comes in high. It works out where it would come down if it
+     *   shut its wings now; when that's on you (where you'll be by then), it shuts them and drops.
+     *   Coming in too fast to land on you, it pulls up to bleed speed instead of flying past.</li>
+     *   <li><b>Drop</b>: wings shut, it steers in the air toward you and smashes with the mace. If
+     *   it's going to miss by a lot it opens up again and goes round for another run.</li>
+     * </ul>
+     * Without a mace (or with no room above) it swoops at your height and swings instead. If you fly
+     * too, it chases you in the air. When it's hurt it flies wide and eats or puts a totem back, up
+     * there. Rockets whenever it slows down or gets low; it lands only when the rockets run out.
+     */
+    private void skyAerial(int t, LivingEntity tgt, boolean hands) {
+        if (onGround) {
+            landed(t);
+            skyRetryAt = t + 4 + reactionTicks;
+            return;
+        }
+        airUntil = t + 200;
+        Vec3d tp = tgt.getEntityPos();
+        double hd = Math.sqrt((tp.x - pos.x) * (tp.x - pos.x) + (tp.z - pos.z) * (tp.z - pos.z));
+        double alt = pos.y - tp.y;
+        double above = pos.y - groundBelow(pos);
+        double speed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
+        boolean gapple = has(s -> s.isOf(Items.GOLDEN_APPLE) || s.isOf(Items.ENCHANTED_GOLDEN_APPLE));
+        float me = health();
+        boolean hurt = me < 8 || absorption <= 0 && me < 13 && gapple;
+        boolean duel = tgt.isGliding();
+        double lead = level.accuracy; // how well it reads where they're going
+        if (air == Air.DIVE) {
+            skyDrop(t, tgt, hands, above);
+            return;
+        }
+        if (hands && !offhand.isOf(Items.TOTEM_OF_UNDYING) && has(s -> s.isOf(Items.TOTEM_OF_UNDYING))) {
+            startRetotem(t);
+            return;
+        }
+        double top = pos.y + headroom(t) - 2.5;
+        double high = Math.min(tp.y + 12, top);
+        boolean diveOk = has(s -> s.isOf(Items.MACE)) && high - tp.y >= 5;
+        double wantY = duel ? tp.y + 0.5 : diveOk ? high : Math.min(tp.y + 1.2, top);
+        if (skyOut && (hd >= 13 || t >= skyOutUntil)) skyOut = false;
+        Vec3d goal;
+        boolean brake = false;
+        if (hurt) {
+            // wide and high, away from them, to eat
+            double r = Math.max(12, bw.radius() * 0.7);
+            double ang = Math.atan2(pos.z - tp.z, pos.x - tp.x) + 0.25;
+            goal = new Vec3d(tp.x + Math.cos(ang) * r, Math.min(tp.y + 9, top), tp.z + Math.sin(ang) * r);
+        } else if (duel) {
+            goal = tgt.getEyePos().add(tgtVel.multiply(5 * lead)).add(0, -1, 0);
+        } else if (skyOut) {
+            Vec3d away = new Vec3d(pos.x - tp.x, 0, pos.z - tp.z);
+            if (away.lengthSquared() < 1e-4) away = new Vec3d(vel.x, 0, vel.z);
+            if (away.lengthSquared() < 1e-4) away = new Vec3d(1, 0, 0);
+            Vec3d a = away.normalize();
+            goal = new Vec3d(tp.x + a.x * 16, wantY, tp.z + a.z * 16);
+        } else {
+            Vec3d aim = tp.add(tgtVel.multiply(10 * lead));
+            goal = new Vec3d(aim.x, wantY, aim.z);
+            if (diveOk && speed > 0.2) {
+                // coming in too fast to come down on them: pull up and lose speed
+                Vec3d dir = new Vec3d(vel.x, 0, vel.z).normalize();
+                Drop d = dropFrom(tp.y + 1);
+                double toThem = dir.dotProduct(new Vec3d(aim.x - pos.x, 0, aim.z - pos.z));
+                double carry = dir.dotProduct(new Vec3d(d.at().x - pos.x, 0, d.at().z - pos.z));
+                brake = toThem > 0 && carry > toThem + 1.5;
+            }
+        }
+        if (above < 4) goal = new Vec3d(goal.x, Math.max(goal.y, pos.y + 6), goal.z); // pull up
+        Vec3d flat = new Vec3d(goal.x - pos.x, 0, goal.z - pos.z);
+        if (flat.lengthSquared() < 1) flat = new Vec3d(vel.x, 0, vel.z);
+        if (flat.lengthSquared() < 1e-4) flat = new Vec3d(1, 0, 0);
+        // gentle climbs only (looking straight up kills the speed) - unless braking on purpose
+        double climb = brake ? 6 : MathHelper.clamp(goal.y - pos.y, -6, 3);
+        lookTarget = eye().add(flat.normalize().multiply(8)).add(0, climb, 0);
+        boolean needSpeed = !brake && (speed < 0.6 || pos.y < wantY - 3);
+        if (hands && t >= nextRocketAt && boostTicks <= 0 && (needSpeed || above < 5) && hold(s -> s.isOf(Items.FIREWORK_ROCKET))) {
+            consumeHeld();
+            boostTicks = 20;
+            nextRocketAt = t + rocketGap();
+            w.playSound(null, body.getBlockPos(), SoundEvents.ENTITY_FIREWORK_ROCKET_LAUNCH, SoundCategory.PLAYERS, 1f, 1f);
+            lastAction = "rockets";
+        }
+        air = boostTicks > 0 ? Air.BOOST : Air.GLIDE;
+        if (!hands) return;
+        // hurt: eat up here, between rockets
+        if (hurt && gapple && absorption <= 0 && boostTicks <= 0 && above > 5 && t >= busyUntil) {
+            if (hold(s -> s.isOf(Items.GOLDEN_APPLE) || s.isOf(Items.ENCHANTED_GOLDEN_APPLE))) {
+                startEating(t);
+                lastAction = "eats in the air";
+            }
+            return;
+        }
+        if (hurt || t < nextSwingAt) return;
+        if (diveOk && !duel && !skyOut) {
+            if (alt > 4) {
+                Drop d = dropFrom(tp.y + 1);
+                Vec3d aim = tp.add(tgtVel.multiply(d.ticks() * lead));
+                double miss = Math.sqrt((d.at().x - aim.x) * (d.at().x - aim.x) + (d.at().z - aim.z) * (d.at().z - aim.z));
+                if (miss < 1.2 + (1 - lead) * 2.5) {
+                    setGliding(false);
+                    peakY = pos.y; // a glide doesn't build up a fall: it counts from here
+                    air = Air.DIVE;
+                    hold(s -> s.isOf(Items.MACE));
+                    lastAction = "dives";
+                    return;
+                }
+            }
+            if (hd < 2.5) {
+                skyOut = true; // went over them: out and round again
+                skyOutUntil = t + 35;
+            }
+            return;
+        }
+        // a duel, or a swoop past at their height: swing when in reach
+        if (canHit(tgt)) {
+            Predicate<ItemStack> weapon = has(s -> s.isIn(ItemTags.SWORDS)) ? s -> s.isIn(ItemTags.SWORDS) : PvpBot::isWeapon;
+            if (hold(weapon) && aimed(tgt.getBoundingBox().getCenter())) {
+                hit(tgt, false, t);
+                if (!duel) {
+                    skyOut = true;
+                    skyOutUntil = t + 25;
+                }
+            }
+        } else if (!duel && hd < 1.5) {
+            skyOut = true;
+            skyOutUntil = t + 25;
+        }
+    }
+
+    /** Wings shut: steer in the air toward where they'll be, smash on contact, or open up again on a clear miss. */
+    private void skyDrop(int t, LivingEntity tgt, boolean hands, double above) {
+        Vec3d tp = tgt.getEntityPos();
+        lookTarget = tgt.getEyePos();
+        if (hands) hold(s -> s.isOf(Items.MACE));
+        Drop d = dropFrom(tp.y + 1);
+        Vec3d aim = tp.add(tgtVel.multiply(d.ticks() * level.accuracy));
+        Vec3d fix = new Vec3d(aim.x - d.at().x, 0, aim.z - d.at().z);
+        // air strafing: a little sideways each tick, like a player holding a key mid-fall
+        walk = fix.lengthSquared() < 1e-4 ? Vec3d.ZERO : fix.normalize().multiply(Math.min(0.06, fix.length() / Math.max(1, d.ticks())));
+        double fall = peakY - pos.y;
+        boolean close = body.getBoundingBox().expand(1.2, 0.6, 1.2).intersects(tgt.getBoundingBox());
+        if (close && vel.y < 0 && held().isOf(Items.MACE) && fall > 1.5) {
+            smash(tgt, fall, t);
+            return;
+        }
+        if (hands && vel.y < 0 && above > 4 && fix.length() > 3.5 && t >= nextRocketAt) {
+            setGliding(true); // a clear miss: open up and go round
+            air = Air.GLIDE;
+            skyOut = true;
+            skyOutUntil = t + 30;
+        }
     }
 
     private void smash(LivingEntity tgt, double fall, int t) {
@@ -1590,6 +2007,16 @@ public final class PvpBot {
         maceSmashes++;
         lastAction = String.format(Locale.ROOT, "smashes from %.0f blocks", f);
         peakY = pos.y;
+        if (sky()) {
+            // a sky fighter goes straight back up: wings open, off again
+            vel = new Vec3d(vel.x * 0.3, enchLevel(held(), Enchantments.WIND_BURST) > 0 ? 1.0 : 0.5, vel.z * 0.3);
+            nextSwingAt = t + 33;
+            setGliding(true);
+            air = Air.GLIDE;
+            skyOut = true; // out and round for the next one
+            skyOutUntil = t + 30;
+            return;
+        }
         if (enchLevel(held(), Enchantments.WIND_BURST) > 0) {
             vel = new Vec3d(vel.x * 0.3, 1.0, vel.z * 0.3); // Wind Burst: straight back up for another
             airUntil = t + 60;
@@ -1611,7 +2038,8 @@ public final class PvpBot {
                 inv[i] = ely;
             }
         }
-        if (air != Air.NONE && nextSwingAt < t + 20) nextSwingAt = t + 20;
+        int rest = personality == Personality.POGO ? 6 : 20; // a pogo player bounces again right away
+        if (air != Air.NONE && nextSwingAt < t + rest) nextSwingAt = t + rest;
         air = Air.NONE;
         windJump = false;
         boostTicks = 0;
@@ -1960,7 +2388,20 @@ public final class PvpBot {
             self.lastHitAt = bw.ticks();
             by.dealt += dmg;
         }
+        int popsBefore = self == null ? 0 : self.pops;
+        float healthBefore = health();
         applyDamage(dmg);
+        if (explosion && by == self && (dmg >= 1f || self != null && self.pops > popsBefore)) { // real damage, not a scratch
+            selfBlasts++;
+            boolean popped = self != null && self.pops > popsBefore;
+            float left = alive() && !popped ? health() : 0f;
+            if (left < lowestAfterOwnBlast) {
+                lowestAfterOwnBlast = left;
+                lowestNote = String.format(Locale.ROOT, "had %.1f, took %.1f (raw %.1f) from %s at %.1f blocks, hurt window %b, t %d last '%s'",
+                        healthBefore, dmg, amount, source.getSource() == null ? "?" : source.getSource().getType().getUntranslatedName(),
+                        from == null ? -1 : from.distanceTo(pos), !newHit, bw.ticks(), lastAction);
+            }
+        }
         if (alive()) w.spawnParticles(ParticleTypes.DAMAGE_INDICATOR, pos.x, pos.y + 1.2, pos.z, Math.max(1, Math.round(dmg / 2)), 0.3, 0.3, 0.3, 0.1);
         return false;
     }
@@ -2103,6 +2544,7 @@ public final class PvpBot {
         if (ny < fl) {
             ny = fl;
             vel = new Vec3d(vel.x, 0, vel.z);
+            if (gliding) setGliding(false); // touched down: the wings close, like a player's
         }
         Vec3d up = new Vec3d(next2.x, ny, next2.z);
         if (step.y > 0 && blocked(up)) {

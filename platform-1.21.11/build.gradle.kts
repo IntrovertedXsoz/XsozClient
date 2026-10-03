@@ -13,7 +13,7 @@ base {
     archivesName.set("xsozclient")
 }
 
-version = "0.2.0+mc1.21.11"
+version = "0.3.0-dev.1+mc1.21.11"
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))

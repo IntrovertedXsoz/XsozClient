@@ -746,7 +746,7 @@ public final class TrainerScreen extends Screen {
         y = chipRow(c, "Personality", dev.xsoz.client.training.bot.FreeRoamConfig.PersonalityMode.values(), v -> v.title, v -> v.detail,
                 f.personalityMode, v -> f.personalityMode = v, x, y, w, mx, my);
         if (f.personalityMode == dev.xsoz.client.training.bot.FreeRoamConfig.PersonalityMode.SAME) {
-            y = chipRow(c, "", dev.xsoz.client.training.bot.Personality.values(), v -> v.title, v -> v.detail, f.samePersonality, v -> f.samePersonality = v, x, y, w, mx, my);
+            y = chipRow(c, "", dev.xsoz.client.training.bot.Personality.forAbilities(f.abilities()).toArray(new dev.xsoz.client.training.bot.Personality[0]), v -> v.title, v -> v.detail, f.samePersonality, v -> f.samePersonality = v, x, y, w, mx, my);
         } else if (f.personalityMode == dev.xsoz.client.training.bot.FreeRoamConfig.PersonalityMode.PICK) {
             var picks = f.picks();
             int px = x + 74;
@@ -760,8 +760,8 @@ public final class TrainerScreen extends Screen {
                     y += 17;
                 }
                 px += chip(c, label, px, y, false, mx, my, "pick" + i, who.detail + " Click for the next one.", () -> {
-                    var all = dev.xsoz.client.training.bot.Personality.values();
-                    picks.set(idx, all[(picks.get(idx).ordinal() + 1) % all.length]);
+                    var all = dev.xsoz.client.training.bot.Personality.forAbilities(f.abilities());
+                    picks.set(idx, all.get((all.indexOf(picks.get(idx)) + 1) % all.size()));
                     TrainingStore.save();
                 }) + 4;
             }
@@ -1528,6 +1528,22 @@ public final class TrainerScreen extends Screen {
         y += 12;
         y = groundRows(c, x, y, contentW, mx, my);
         y += 6;
+
+        // updates from GitHub, on the player's channel
+        Gfx.textBold(c, "Updates", x, y, Theme.TEXT);
+        y += 12;
+        Gfx.text(c, "You have version " + dev.xsoz.client.update.Updates.current().pretty() + ".", x, y + 3, Theme.TEXT_2);
+        if (button(c, dev.xsoz.client.update.Updates.checking() ? "Checking..." : "Check for updates", x + 160, y, 110, 14, true, mx, my,
+                () -> client.setScreen(dev.xsoz.client.gui.UpdateScreen.checkNow(this)))) {
+            tip.offer("upd-check", "Looks for a newer version on your channel now, and asks before installing it.");
+        }
+        y += 20;
+        y = chipRow(c, "Channel", dev.xsoz.client.update.Channel.values(), v -> v.title, v -> v.detail,
+                dev.xsoz.client.update.Updates.channel(), dev.xsoz.client.update.Updates::setChannel, x, y, contentW, mx, my);
+        y = chipRow(c, "On start", new Boolean[] {true, false}, v -> v ? "Ask about updates" : "Don't ask",
+                v -> v ? "When a new version is out, the menu asks if you want it." : "Never asks. Use Check for updates here instead.",
+                dev.xsoz.client.update.Updates.askOnStart(), dev.xsoz.client.update.Updates::setAskOnStart, x, y, contentW, mx, my);
+        y += 8;
 
         // developer / testing code
         Gfx.textBold(c, "Developer code", x, y, Theme.TEXT);

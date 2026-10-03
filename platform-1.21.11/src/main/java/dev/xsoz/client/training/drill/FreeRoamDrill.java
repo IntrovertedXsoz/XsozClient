@@ -21,6 +21,24 @@ public final class FreeRoamDrill extends BotFightDrill {
 
     private final FreeRoamConfig cfg;
 
+    /** Watch mode: how you watch the bot you're on. */
+    public enum View {
+        EYES("Through its eyes"), BEHIND("From behind"), FREE("Free camera");
+
+        public final String title;
+
+        View(String title) { this.title = title; }
+    }
+
+    /** Watch mode: the bot you're watching (index into the bots, -1 none) and how. Set on the server thread. */
+    private volatile int watching = -1;
+    private volatile View view = View.FREE;
+    /** The body the camera was put on: a different one means a respawn, the same one gone means you left it. */
+    private net.minecraft.entity.Entity attachedTo;
+    private int watchedDeadSince = -1;
+    /** Tests: a fake player can't carry a camera (the world doesn't track it), so it is only noted here. */
+    public net.minecraft.entity.Entity cameraForTests;
+
     public FreeRoamDrill(Mode mode, double p, boolean hints) {
         super(DrillDef.FREE_ROAM, Mode.FIXED, p, hints);
         this.cfg = pending.copy();
@@ -73,7 +91,7 @@ public final class FreeRoamDrill extends BotFightDrill {
             Vec3d at = spawnPointFor(team);
             b.spawn(this, at, Scene.yawTowards(at, me));
         }
-        status = cfg.watch ? "Watching - click a bot to see through its eyes. Right Shift to stop."
+        status = cfg.watch ? "Watching - arrow keys to pick a bot and a view. Right Shift to stop."
                 : cfg.abilitiesTitle() + " on " + cfg.terrain.title + " - drop an item to stop.";
     }
 
@@ -81,7 +99,135 @@ public final class FreeRoamDrill extends BotFightDrill {
     protected void tick() {
         tickFight();
         if (age() == 60 && !cfg.watch) status = "";
-        if (cfg.watch) keepInside(player());
+        if (cfg.watch) {
+            keepInside(player());
+            tickWatch();
+        }
+    }
+
+    // ------------------------------------------------------------------ watch mode
+
+    public View view() { return view; }
+
+    /** The bot being watched, or null (free camera). */
+    public PvpBot watched() {
+        int i = watching;
+        return view == View.FREE || i < 0 || i >= bots.size() ? null : bots.get(i);
+    }
+
+    /** Left / right arrow: the previous or next bot that's alive. Server thread. */
+    public void watchNext(int dir) {
+        if (!cfg.watch || bots.isEmpty()) return;
+        int n = bots.size();
+        int i = watching < 0 ? (dir > 0 ? -1 : 0) : watching;
+        for (int k = 0; k < n; k++) {
+            i = Math.floorMod(i + dir, n);
+            if (bots.get(i).alive()) break;
+        }
+        watching = i;
+        if (view == View.FREE) view = View.EYES;
+        attach();
+    }
+
+    /** Up / down arrow: through its eyes, from behind, free camera. Server thread. */
+    public void watchView(int dir) {
+        if (!cfg.watch || bots.isEmpty()) return;
+        View[] all = View.values();
+        view = all[Math.floorMod(view.ordinal() + dir, all.length)];
+        if (view != View.FREE && (watching < 0 || !bots.get(watching).alive())) {
+            watching = -1;
+            watchNext(1);
+            return;
+        }
+        attach();
+    }
+
+    private net.minecraft.entity.Entity camera(ServerPlayerEntity pl) {
+        return s.isTest() ? (cameraForTests == null ? pl : cameraForTests) : pl.getCameraEntity();
+    }
+
+    private void setCamera(ServerPlayerEntity pl, net.minecraft.entity.Entity e) {
+        if (s.isTest()) cameraForTests = e;
+        else pl.setCameraEntity(e);
+    }
+
+    private void attach() {
+        ServerPlayerEntity pl = player();
+        if (pl == null) return;
+        PvpBot b = watched();
+        if (b == null || !b.alive()) {
+            attachedTo = null;
+            if (camera(pl) != pl) setCamera(pl, pl);
+            return;
+        }
+        attachedTo = b.body();
+        setCamera(pl, b.body());
+        watchedDeadSince = -1;
+    }
+
+    /** Keeps the camera on the watched bot through respawns, and follows what you did with the mouse and Shift. */
+    private void tickWatch() {
+        ServerPlayerEntity pl = player();
+        if (pl == null) return;
+        var cam = camera(pl);
+        // clicked a bot yourself (vanilla spectating): that's the one you're watching now
+        if (cam != pl) {
+            for (int i = 0; i < bots.size(); i++) {
+                if (bots.get(i).body() == cam && (watching != i || view == View.FREE)) {
+                    watching = i;
+                    if (view == View.FREE) view = View.EYES;
+                    attachedTo = cam;
+                }
+            }
+        }
+        PvpBot b = watched();
+        if (b == null) return;
+        if (!b.alive()) {
+            // it died: stay a moment, then on to the next one
+            if (watchedDeadSince < 0) watchedDeadSince = age();
+            else if (age() - watchedDeadSince > 40) watchNext(1);
+            return;
+        }
+        watchedDeadSince = -1;
+        if (cam == b.body()) return;
+        if (cam == pl && attachedTo == b.body()) {
+            view = View.FREE; // Shift: you left it
+            attachedTo = null;
+            return;
+        }
+        attach(); // it respawned with a new body
+    }
+
+    @Override
+    public void renderOverlay(net.minecraft.client.gui.DrawContext c, int sw, int sh) {
+        super.renderOverlay(c, sw, sh);
+        if (!cfg.watch) return;
+        PvpBot b = watched();
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        String head;
+        if (b == null) {
+            head = "FREE CAMERA";
+            lines.add("Left / Right: watch a bot.  Or click one.");
+        } else {
+            head = "WATCHING  " + b.name + "  -  " + b.level.title;
+            lines.add(b.alive() ? String.format(Locale.ROOT, "%.0f health   %d totems   %s", b.health(), b.totemCount(),
+                    b.lastAction == null || b.lastAction.isEmpty() ? "" : "last: " + b.lastAction) : "Dead - waiting for the respawn...");
+            lines.add("Left / Right: other bot     Up / Down: view (" + view.title + ")");
+        }
+        lines.add("Right Shift: stop");
+        int w = dev.xsoz.client.render.Gfx.widthBold(head);
+        for (String l : lines) w = Math.max(w, dev.xsoz.client.render.Gfx.width(l));
+        w += 20;
+        int h = 16 + lines.size() * 10;
+        int x = sw / 2 - w / 2;
+        int y = sh - h - 44;
+        dev.xsoz.client.render.Gfx.round(c, x, y, w, h, 5, 0xD8101114);
+        dev.xsoz.client.render.Gfx.textBold(c, head, x + 10, y + 5, dev.xsoz.client.render.Theme.accent());
+        int ly = y + 17;
+        for (String l : lines) {
+            dev.xsoz.client.render.Gfx.text(c, l, x + 10, ly, dev.xsoz.client.render.Theme.TEXT_2);
+            ly += 10;
+        }
     }
 
     @Override

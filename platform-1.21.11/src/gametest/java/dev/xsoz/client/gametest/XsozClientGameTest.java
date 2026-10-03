@@ -132,6 +132,14 @@ public final class XsozClientGameTest implements FabricClientGameTest {
         ctx.setScreen(() -> new TrainerScreen(null, TrainerScreen.Tab.SETTINGS));
         ctx.waitTicks(10);
         ctx.takeScreenshot("xsoz-04d-settings");
+        // the update question, over the menu
+        ctx.setScreen(XsozTitleScreen::new);
+        ctx.waitTicks(5);
+        ctx.setScreen(() -> new dev.xsoz.client.gui.UpdateScreen(net.minecraft.client.MinecraftClient.getInstance().currentScreen,
+                new dev.xsoz.client.update.Updates.Release(dev.xsoz.client.update.Version.parse("v0.4.0-dev.1"), "v0.4.0-dev.1",
+                        "https://example.invalid/xsozclient.jar", 10, "https://example.invalid", false)));
+        ctx.waitTicks(10);
+        ctx.takeScreenshot("xsoz-04e-update-prompt");
         ctx.setScreen(() -> new KitEditorScreen(null));
         ctx.waitTicks(15);
         ctx.takeScreenshot("xsoz-05-kit-editor");
@@ -156,6 +164,7 @@ public final class XsozClientGameTest implements FabricClientGameTest {
             }
         } else if (System.getenv("XSOZ_QUICK") != null && gate.ok()) {
             sparring(ctx, sp);
+            watchMode(ctx, sp);
         } else if (!gate.ok()) {
             log("Drills skipped: the world is not a superflat single player world.");
         } else {
@@ -188,6 +197,7 @@ public final class XsozClientGameTest implements FabricClientGameTest {
                     dev.xsoz.client.training.bot.FreeRoamConfig.Teams.TEAMS, 4, 2, "teams-desert");
             freeRoam(ctx, sp, dev.xsoz.client.training.bot.FreeRoamConfig.Fight.MACE, dev.xsoz.client.training.bot.FreeRoamConfig.Terrain.STONE,
                     dev.xsoz.client.training.bot.FreeRoamConfig.Teams.VS_YOU, 1, 0, "mace-stone");
+            watchMode(ctx, sp);
             realDeath(ctx, sp);
         }
 
@@ -399,6 +409,51 @@ public final class XsozClientGameTest implements FabricClientGameTest {
         log(String.format(Locale.ROOT, "Free Roam %s: %s; bot actions %d%s", name, d.summaryLine(), actions, dbg));
         stop(ctx);
         if (actions == 0) throw new AssertionError("Free Roam " + name + ": the bots did nothing in 20 s");
+    }
+
+    /** Watch mode: the arrow keys pick a bot and a view; the camera really follows. */
+    private void watchMode(ClientGameTestContext ctx, TestSingleplayerContext sp) {
+        var cfg = new dev.xsoz.client.training.bot.FreeRoamConfig();
+        cfg.abilities = new java.util.ArrayList<>(dev.xsoz.client.training.bot.FreeRoamConfig.Fight.MACE.abilities());
+        cfg.terrain = dev.xsoz.client.training.bot.FreeRoamConfig.Terrain.GRASS;
+        cfg.teams = dev.xsoz.client.training.bot.FreeRoamConfig.Teams.FFA;
+        cfg.bots = 3;
+        cfg.watch = true;
+        cfg.level = 4;
+        cfg.personalityMode = dev.xsoz.client.training.bot.FreeRoamConfig.PersonalityMode.SAME;
+        cfg.samePersonality = dev.xsoz.client.training.bot.Personality.SKY_FIGHTER;
+        cfg.size = dev.xsoz.client.training.bot.FreeRoamConfig.Size.MEDIUM;
+        ctx.runOnClient(c -> dev.xsoz.client.training.drill.FreeRoamDrill.configure(cfg));
+        start(ctx, DrillDef.FREE_ROAM, 4, 0.5);
+        var d = (dev.xsoz.client.training.drill.FreeRoamDrill) TrainingManager.active();
+        ctx.waitTicks(60);
+        ctx.takeScreenshot("xsoz-35-watch-free");
+        ctx.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT);
+        ctx.waitTicks(10);
+        boolean onBot = ctx.computeOnClient(c -> c.getCameraEntity() != c.player);
+        ctx.waitTicks(60);
+        ctx.takeScreenshot("xsoz-36-watch-eyes");
+        ctx.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
+        ctx.waitTicks(10);
+        var persp = ctx.computeOnClient(c -> c.options.getPerspective());
+        ctx.waitTicks(60);
+        ctx.takeScreenshot("xsoz-37-watch-behind");
+        ctx.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT);
+        ctx.waitTicks(10);
+        String second = d.watched() == null ? "none" : d.watched().name;
+        ctx.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN);
+        ctx.waitTicks(10);
+        boolean free = ctx.computeOnClient(c -> c.getCameraEntity() == c.player) && d.view() == dev.xsoz.client.training.drill.FreeRoamDrill.View.FREE;
+        int smashes = 0;
+        for (var b : d.botsForTests()) smashes += b.maceSmashes;
+        log("Watch mode: on a bot " + onBot + ", behind " + persp + ", next bot " + second + ", free again " + free + ", sky smashes " + smashes);
+        stop(ctx);
+        ctx.waitTicks(10);
+        var after = ctx.computeOnClient(c -> c.options.getPerspective());
+        if (!onBot) throw new AssertionError("Right arrow didn't put the camera on a bot");
+        if (persp != net.minecraft.client.option.Perspective.THIRD_PERSON_BACK) throw new AssertionError("Down arrow didn't switch to the view from behind: " + persp);
+        if (!free) throw new AssertionError("Down arrow from behind didn't go back to the free camera");
+        if (after != net.minecraft.client.option.Perspective.FIRST_PERSON) throw new AssertionError("Leaving watch mode left the camera in " + after);
     }
 
     /** A real death in the middle of a drill: the drill ends and your own inventory comes back on respawn. */
