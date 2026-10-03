@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "note": "Supported game versions and the mod layer each one expects. Loader versions are recorded here for the launcher's own verification and are deliberately NOT presented as a user-facing choice - the UI shows the game version and a support grade. Only one version ships: a version the launcher cannot fully support is removed, not greyed out.",
+  "versions": [
+    {
+      "id": "1.21.11",
+      "label": "1.21.11",
+      "releaseName": "1.21.11",
+      "role": "primary",
+      "support": "Full",
+      "supportNote": "The modern competitive pole. This is the version the whole performance dossier is calibrated against, and the version the installer can provision end to end: Java 21, the game, Fabric, and the mod layer.",
+      "recommended": true,
+      "javaMajor": 21,
+      "loaderId": "fabric",
+      "loaderName": "Fabric",
+      "loaderVersion": "auto",
+      "apiVersion": "auto",
+      "modLayerCount": 10,
+      "assetIndex": "26",
+      "accentNote": "Full support"
+    }
+  ]
+}

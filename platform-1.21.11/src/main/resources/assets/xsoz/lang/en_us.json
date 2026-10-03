@@ -1,0 +1,16 @@
+{
+  "key.category.xsoz.main": "Xsoz Client",
+  "key.xsoz.clickgui": "Open Xsoz menu",
+  "key.xsoz.trainer": "Open Crystal Trainer",
+  "key.xsoz.zoom": "Zoom",
+  "key.category.xsoz.combo": "Xsoz Combo Binds",
+  "key.xsoz.combo.xp": "XP bottles (select + use)",
+  "key.xsoz.combo.sword": "Sword (select + hit)",
+  "key.xsoz.combo.obsidian": "Obsidian (select + place)",
+  "key.xsoz.combo.anchor": "Anchor (select + place)",
+  "key.xsoz.combo.glowstone": "Glowstone (select + charge)",
+  "key.xsoz.combo.crystal": "Crystal (select + place)",
+  "key.xsoz.combo.gapple": "Golden apple (select + eat, hold)",
+  "key.xsoz.combo.pearl": "Ender pearl (select + throw)",
+  "key.xsoz.combo.totem": "Totem (select + swap to offhand)"
+}

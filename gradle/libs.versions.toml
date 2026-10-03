@@ -1,0 +1,29 @@
+#
+# Version catalog - ALL versions live here (docs/toolchain.md 3.2 rule 5).
+#
+# Boundary for this build task: JUnit 5 and the foojay resolver and nothing else.
+# Loom, Architectury and every Minecraft/Fabric artifact arrive with the platform
+# modules task. Do not add a Minecraft dependency to `:core` - contract C10.3
+# (`CoreCompileClasspathIsCleanTest`) fails the build if you do.
+#
+
+[versions]
+# JDK 25.0.1 is the only JDK this build needs today. Gradle runs on it; `:core`
+# targets the Java 17 language level via `options.release = 17`.
+javaLanguageRelease = "17"
+
+# JUnit 5.14.4 is the newest JUnit *5* line. JUnit 6.x exists but this repo is
+# pinned to the JUnit 5 generation; do not drift to 6 without a decision.
+junit = "5.14.4"
+
+# 1.0.0 - Gradle's own auto-provisioning resolver. Needed only once the platform
+# subprojects request JDK 8 / JDK 21 toolchains.
+foojayResolver = "1.0.0"
+
+[libraries]
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+
+[plugins]
+foojay-resolver-convention = { id = "org.gradle.toolchains.foojay-resolver-convention", version.ref = "foojayResolver" }

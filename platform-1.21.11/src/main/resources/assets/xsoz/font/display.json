@@ -1,0 +1,1 @@
+{ "providers": [ { "type": "ttf", "file": "xsoz:monocraft-bold.ttf", "size": 10.0, "oversample": 6.0, "shift": [0.0, 0.5] } ] }

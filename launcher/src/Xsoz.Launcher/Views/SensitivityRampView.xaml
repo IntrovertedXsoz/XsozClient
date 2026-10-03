@@ -1,0 +1,257 @@
+﻿<UserControl x:Class="Xsoz.Launcher.Views.SensitivityRampView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:Xsoz.Launcher.Controls"
+             xmlns:vm="clr-namespace:Xsoz.Launcher.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:RampViewModel}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             Focusable="True"
+             IsTabStop="True"
+             FocusVisualStyle="{StaticResource Focus.Ring}">
+
+  <UserControl.Resources>
+    <!--
+      The three rung looks. Passed is a flat dark green, current is the accent, and upcoming is
+      an empty outline in edge. Colour is never the only signal: the current rung also carries
+      the NOW flag and its label is bold, so the ladder reads in a greyscale screenshot.
+    -->
+    <Style x:Key="Rung" TargetType="Border">
+      <Setter Property="BorderBrush" Value="{StaticResource B.Edge}" />
+      <Setter Property="BorderThickness" Value="{StaticResource H.Hair}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="SnapsToDevicePixels" Value="True" />
+      <Setter Property="VerticalAlignment" Value="Bottom" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsPassed}" Value="True">
+          <Setter Property="Background" Value="{StaticResource B.AccentDeep}" />
+          <Setter Property="BorderBrush" Value="{StaticResource B.AccentDeep}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+          <Setter Property="Background" Value="{StaticResource B.Accent}" />
+          <Setter Property="BorderBrush" Value="{StaticResource B.Accent}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="RungLabel" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="{StaticResource U.12}" />
+      <Setter Property="FontWeight" Value="Medium" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="Foreground" Value="{StaticResource B.Text3}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+          <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+          <Setter Property="FontWeight" Value="Bold" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+
+  <!--
+    THE SENSITIVITY RAMP.
+
+    Seven blocks rising left to right, with the block height being the speed on a log scale: each
+    full step divides the distance by 1.5 and so is exactly the same height, and the last step
+    (0.80 to 0.744, a factor of 1.075) is 3px instead of 15. A partial step looks like a partial
+    step. The top of the last block is hatched, which is the only legend the control has and it
+    does not need one.
+
+    The rungs are NOT buttons. There is no way to click your way to the end, on purpose: the
+    protection against an 8x jump is that no single gesture performs one. The only two ways to
+    move are the two buttons and the left and right arrow keys, and both move exactly one stage.
+
+    Left and right are handled on PreviewKeyDown at the control, so they work whether the control
+    itself has focus or one of the two buttons inside it does - which is where focus lands the
+    moment the drawer opens.
+
+    Which is why this element carries a focus ring of its own. The drawer puts keyboard focus HERE
+    on open so the arrow keys work immediately, and until now this was the only focusable thing in
+    the product that showed nothing when it had it: a keyboard user tabbing the drawer could not
+    tell which of the four focusables they were on. One line, the same accent outline every other
+    control uses.
+  -->
+  <Border Padding="20,16"
+          Background="{StaticResource B.Bg}"
+          BorderBrush="{StaticResource B.Line}"
+          BorderThickness="{StaticResource H.Hair}"
+          SnapsToDevicePixels="True"
+          PreviewKeyDown="OnPreviewKeyDown"
+          AutomationProperties.AutomationId="SensitivityRamp"
+          AutomationProperties.Name="Sensitivity ramp"
+          AutomationProperties.HelpText="Seven stages, one at a time. Use the left and right arrow keys, or the two buttons.">
+    <StackPanel>
+      <!-- header -->
+      <Grid>
+        <TextBlock Text="SENSITIVITY RAMP" Style="{StaticResource T.Eyebrow}" />
+        <TextBlock HorizontalAlignment="Right"
+                   Text="{Binding StageText}"
+                   FontSize="{StaticResource U.13}"
+                   FontWeight="SemiBold"
+                   Foreground="{StaticResource B.Text2}"
+                   AutomationProperties.AutomationId="RampStageText" />
+      </Grid>
+
+      <!-- the current value. Display face, 48px, with the unit in Inter beside it. -->
+      <StackPanel Margin="0,12,0,0" Orientation="Horizontal" VerticalAlignment="Bottom">
+        <TextBlock Text="{Binding CurrentValue}"
+                   Style="{StaticResource T.Display48}"
+                   AutomationProperties.AutomationId="RampValue" />
+        <TextBlock Margin="8,0,0,6"
+                   VerticalAlignment="Bottom"
+                   Text="cm/360"
+                   FontSize="{StaticResource U.14}"
+                   FontWeight="Medium"
+                   Foreground="{StaticResource B.Text2}" />
+      </StackPanel>
+
+      <!--
+        The ladder. A 132px box with 24px of headroom above the tallest rung for the NOW flag,
+        and the seven columns bottom-aligned so the steps read as a staircase. The partial-step
+        hatch is a 7px cap on the last rung only.
+      -->
+      <Grid Height="132"
+            Margin="0,12,0,0"
+            AutomationProperties.AutomationId="RampLadder">
+        <ItemsControl ItemsSource="{Binding Rungs}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Columns="7" Rows="1" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Grid VerticalAlignment="Bottom">
+                <Grid.Style>
+                  <Style TargetType="Grid">
+                    <!-- 24px of headroom for the NOW flag, above the tallest rung. The trailing
+                         3px is the design's 6px gap, halved; the last rung drops it so the ladder
+                         is flush on the right the way a CSS grid with gap is. -->
+                    <Setter Property="Margin" Value="0,24,3,0" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding Index}" Value="6">
+                        <Setter Property="Margin" Value="0,24,0,0" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Grid.Style>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- The NOW flag, above the current rung only. -->
+                <c:TrackedText Grid.Row="0"
+                               Margin="0,0,0,6"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Bottom"
+                               Text="NOW"
+                               Tracking="40"
+                               DisplayFontFamily="{StaticResource F.Display}"
+                               DisplayFontSize="{StaticResource D.12}"
+                               DisplayFontWeight="Bold"
+                               Foreground="{StaticResource B.Accent}"
+                               Visibility="{Binding IsCurrent, Converter={StaticResource Cv.Bool}}" />
+
+                <Border Grid.Row="1"
+                        Style="{StaticResource Rung}"
+                        Height="{Binding Height}"
+                        AutomationProperties.AutomationId="RampRung"
+                        AutomationProperties.Name="{Binding Label}">
+                  <!--
+                    The hatched cap. 7px, on the last rung only, striped 2px every 5px at 45
+                    degrees. On a passed or current rung the stripes are on-accent, so the cap
+                    reads as part of the block rather than as a label sitting on it - which is
+                    what lets the same control paint the target rung in all three states.
+                  -->
+                  <c:HatchFill Height="7"
+                               VerticalAlignment="Top"
+                               Visibility="{Binding IsPartial, Converter={StaticResource Cv.Bool}}">
+                    <c:HatchFill.Style>
+                      <Style TargetType="{x:Type c:HatchFill}">
+                        <Setter Property="HatchBrush" Value="{StaticResource B.Text2}" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsPassed}" Value="True">
+                            <Setter Property="HatchBrush" Value="{StaticResource B.OnAccent}" />
+                          </DataTrigger>
+                          <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                            <Setter Property="HatchBrush" Value="{StaticResource B.OnAccent}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </c:HatchFill.Style>
+                  </c:HatchFill>
+                </Border>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Grid>
+
+      <!-- the seven values. Inter, not the pixel face: these are numbers a player reads. -->
+      <Grid Height="14" Margin="0,8,0,0">
+        <ItemsControl ItemsSource="{Binding Rungs}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Columns="7" Rows="1" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Label}" Style="{StaticResource RungLabel}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Grid>
+
+      <!-- Two buttons. SLOWER is an outline, FASTER is the one accent-filled button here. -->
+      <Grid Margin="0,16,0,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Button Grid.Column="0"
+                Height="44"
+                Style="{StaticResource Btn.Secondary}"
+                Command="{Binding SlowerCommand}"
+                AutomationProperties.AutomationId="RampSlower"
+                AutomationProperties.Name="One stage slower">
+          <c:TrackedText Text="SLOWER"
+                         Tracking="60"
+                         DisplayFontFamily="{StaticResource F.Display}"
+                         DisplayFontSize="{StaticResource D.16}"
+                         DisplayFontWeight="Bold"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center" />
+        </Button>
+
+        <Button Grid.Column="2"
+                Height="44"
+                Style="{StaticResource Btn.PlayCompact}"
+                Command="{Binding FasterCommand}"
+                AutomationProperties.AutomationId="RampFaster"
+                AutomationProperties.Name="One stage faster">
+          <c:TrackedText Text="FASTER"
+                         Tracking="60"
+                         DisplayFontFamily="{StaticResource F.Display}"
+                         DisplayFontSize="{StaticResource D.16}"
+                         DisplayFontWeight="Bold"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center" />
+        </Button>
+      </Grid>
+
+      <!-- One line of guidance, and at the end one line saying it is finished. -->
+      <TextBlock Margin="0,12,0,0"
+                 TextWrapping="Wrap"
+                 Style="{StaticResource T.Desc13}"
+                 Text="{Binding Hint}"
+                 AutomationProperties.AutomationId="RampHint" />
+    </StackPanel>
+  </Border>
+</UserControl>

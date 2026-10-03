@@ -1,0 +1,620 @@
+<UserControl x:Class="Xsoz.Launcher.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="clr-namespace:Xsoz.Launcher.Views"
+             xmlns:vm="clr-namespace:Xsoz.Launcher.ViewModels"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:SettingsViewModel}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+
+  <UserControl.Resources>
+    <!--
+      One row shape for the whole screen: 64px minimum, 12px of vertical padding, a 1px
+      line-soft rule underneath and a 1px line rule on the first row of a section. The label
+      column is sized to its content rather than fixed, so a one-word label and a two-word label
+      both sit on the same left edge without a second column of empty space.
+    -->
+    <Style x:Key="S.Row" TargetType="Border">
+      <Setter Property="MinHeight" Value="64" />
+      <Setter Property="Padding" Value="0,12" />
+      <Setter Property="BorderBrush" Value="{StaticResource B.LineSoft}" />
+      <Setter Property="BorderThickness" Value="{StaticResource H.RuleBottom}" />
+      <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <Style x:Key="S.Row.First" TargetType="Border" BasedOn="{StaticResource S.Row}">
+      <Setter Property="BorderBrush" Value="{StaticResource B.Line}" />
+      <Setter Property="BorderThickness" Value="{StaticResource H.RuleTop}" />
+    </Style>
+
+    <Style x:Key="S.Section" TargetType="StackPanel">
+      <Setter Property="Margin" Value="0,72,0,0" />
+    </Style>
+
+    <Style x:Key="S.SectionFirst" TargetType="StackPanel" BasedOn="{StaticResource S.Section}">
+      <Setter Property="Margin" Value="0,24,0,0" />
+    </Style>
+
+    <Style x:Key="S.Heading" TargetType="TextBlock" BasedOn="{StaticResource T.Display24}">
+      <Setter Property="Margin" Value="0,0,0,8" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- The label / control grid every row is. -->
+    <Style x:Key="S.RowGrid" TargetType="Grid">
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Resources>
+
+  <!--
+    SETTINGS. Strictly flat. Section headings separated by 72px of whitespace, rows with the
+    label on the left and the value or the control on the right, and the launcher's own log at
+    the foot of Advanced rather than behind a fifth navigation item.
+
+    Two rows the design's mockup has are not here, and their absence is deliberate: simulation
+    distance and particle count have no persisted setting behind them in this build, so a
+    segmented control for either would change nothing on disk. Everything on this screen writes
+    somewhere.
+  -->
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <v:TopBarView Grid.Row="0" Title="Settings" />
+
+    <ScrollViewer x:Name="SettingsScroller"
+                  Grid.Row="1"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+      <StackPanel MaxWidth="{StaticResource M.ContentMaxWidth}"
+                  Margin="48,0,48,72"
+                  HorizontalAlignment="Stretch">
+
+        <!-- ==================== instance ==================== -->
+
+        <StackPanel Style="{StaticResource S.SectionFirst}">
+          <TextBlock Text="Instance" Style="{StaticResource S.Heading}" />
+
+          <Border Style="{StaticResource S.Row.First}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="Game" Style="{StaticResource T.Name14}" />
+              <TextBlock Grid.Column="1"
+                         Text="{Binding InstanceSummary}"
+                         Style="{StaticResource T.Name14Muted}" />
+            </Grid>
+          </Border>
+
+          <Border Style="{StaticResource S.Row}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0" MaxWidth="480" Margin="0,0,32,0" HorizontalAlignment="Left">
+                <TextBlock Text="Install folder" Style="{StaticResource T.Name14}" />
+                <TextBlock Margin="0,4,0,0"
+                           Text="Everything the client installs lives here."
+                           Style="{StaticResource T.Desc13Wrap}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{Binding InstancePath}"
+                           MaxWidth="320"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           Style="{StaticResource T.MonoValue13}"
+                           ToolTip="{Binding InstancePath}" />
+                <Button Margin="16,0,0,0"
+                        Style="{StaticResource Btn.SecondarySm}"
+                        Content="Open"
+                        Command="{Binding OpenInstanceCommand}"
+                        AutomationProperties.AutomationId="OpenInstanceButton" />
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <Border Style="{StaticResource S.Row}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0" MaxWidth="480" Margin="0,0,32,0" HorizontalAlignment="Left">
+                <TextBlock Text="Repair install" Style="{StaticResource T.Name14}" />
+                <TextBlock Margin="0,4,0,0"
+                           Text="Checks every file again and replaces anything that is missing or changed."
+                           Style="{StaticResource T.Desc13Wrap}" />
+              </StackPanel>
+              <!--
+                The same command as the big button on Home, not a second install path. The install
+                is idempotent, so this downloads only what is genuinely missing.
+              -->
+              <Button Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Style="{StaticResource Btn.SecondarySm}"
+                      Content="Repair"
+                      Command="{Binding DataContext.Home.PlayOrInstallCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                      AutomationProperties.AutomationId="RepairInstallButton" />
+            </Grid>
+          </Border>
+        </StackPanel>
+
+        <!-- ==================== performance ==================== -->
+
+        <StackPanel Style="{StaticResource S.Section}">
+          <TextBlock Text="Performance" Style="{StaticResource S.Heading}" />
+
+          <Border Style="{StaticResource S.Row.First}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0" MaxWidth="480" Margin="0,0,32,0" HorizontalAlignment="Left">
+                <TextBlock Text="Memory" Style="{StaticResource T.Name14}" />
+                <TextBlock Margin="0,4,0,0"
+                           Text="{Binding HeapNote}"
+                           Style="{StaticResource T.Desc13Wrap}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                  <Slider Width="320"
+                          Style="{StaticResource Sld.Flat}"
+                          Minimum="2048" Maximum="8192"
+                          TickFrequency="512"
+                          SmallChange="512" LargeChange="1024"
+                          IsSnapToTickEnabled="True"
+                          Value="{Binding HeapMb, Mode=TwoWay}"
+                          AutomationProperties.AutomationId="HeapSlider"
+                          AutomationProperties.Name="Memory in gigabytes" />
+                  <TextBlock Width="72"
+                             Margin="16,0,0,0"
+                             HorizontalAlignment="Right"
+                             VerticalAlignment="Center"
+                             TextAlignment="Right"
+                             Text="{Binding HeapLabel}"
+                             Style="{StaticResource T.Readout16}"
+                             AutomationProperties.AutomationId="HeapReadout" />
+                </StackPanel>
+                <Grid Width="408" Margin="0,4,0,0">
+                  <TextBlock Text="{Binding HeapMinLabel}" Style="{StaticResource T.Caption12}" />
+                  <TextBlock Text="{Binding HeapMaxLabel}" HorizontalAlignment="Right" Style="{StaticResource T.Caption12}" />
+                </Grid>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <Border Style="{StaticResource S.Row}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0" MaxWidth="480" Margin="0,0,32,0" HorizontalAlignment="Left">
+                <TextBlock Text="Collector" Style="{StaticResource T.Name14}" />
+                <TextBlock Margin="0,4,0,0"
+                           Text="{Binding CollectorNote}"
+                           Style="{StaticResource T.Desc13Wrap}" />
+              </StackPanel>
+              <Border Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource Seg.Shell}">
+                <StackPanel Orientation="Horizontal">
+                  <RadioButton Style="{StaticResource Seg.Button}" GroupName="Collector" Content="G1"
+                               IsChecked="{Binding CollectorIndex, Mode=TwoWay, Converter={StaticResource CvIndex.Zero}}"
+                               AutomationProperties.AutomationId="CollectorG1" />
+                  <RadioButton Style="{StaticResource Seg.Button}" GroupName="Collector" Content="ZGC"
+                               IsChecked="{Binding CollectorIndex, Mode=TwoWay, Converter={StaticResource CvIndex.One}}"
+                               AutomationProperties.AutomationId="CollectorZgc" />
+                  <RadioButton x:Name="CollectorLast" Style="{StaticResource Seg.ButtonLast}" GroupName="Collector" Content="Shenandoah"
+                               IsChecked="{Binding CollectorIndex, Mode=TwoWay, Converter={StaticResource CvIndex.Two}}"
+                               AutomationProperties.AutomationId="CollectorShenandoah" />
+                </StackPanel>
+              </Border>
+            </Grid>
+          </Border>
+        </StackPanel>
+
+        <!-- ==================== the JVM flag table ==================== -->
+
+        <StackPanel Style="{StaticResource S.Section}">
+          <TextBlock Text="JVM flags" Style="{StaticResource S.Heading}" />
+
+          <ItemsControl ItemsSource="{Binding FlagToggles}"
+                        AutomationProperties.AutomationId="JvmFlagToggles">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Style="{StaticResource S.Row}">
+                  <Grid Style="{StaticResource S.RowGrid}">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="64" />
+                      <ColumnDefinition Width="300" />
+                      <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ToggleButton Grid.Column="0"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center"
+                                  Style="{StaticResource Tog.Square}"
+                                  IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                  AutomationProperties.AutomationId="JvmFlagToggle"
+                                  AutomationProperties.Name="{Binding Label}" />
+                    <TextBlock Grid.Column="1"
+                               VerticalAlignment="Center"
+                               Text="{Binding Label}"
+                               Style="{StaticResource T.MonoValue13}"
+                               Foreground="{StaticResource B.Text}" />
+                    <TextBlock Grid.Column="2"
+                               Margin="16,0,0,0"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap"
+                               Text="{Binding Explanation}"
+                               Style="{StaticResource T.Desc13}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <ItemsControl ItemsSource="{Binding FlagRows}"
+                        AutomationProperties.AutomationId="JvmFlagRows">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Style="{StaticResource S.Row}">
+                  <Grid Style="{StaticResource S.RowGrid}">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="64" />
+                      <ColumnDefinition Width="300" />
+                      <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0"
+                            Width="6" Height="6"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource Hollow}" />
+                    <TextBlock Grid.Column="1"
+                               VerticalAlignment="Center"
+                               Text="{Binding Resolved}"
+                               Style="{StaticResource T.MonoValue13}"
+                               Foreground="{StaticResource B.Text}" />
+                    <TextBlock Grid.Column="2"
+                               Margin="16,0,0,0"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap"
+                               Text="{Binding Explanation}"
+                               Style="{StaticResource T.Desc13}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <Border Style="{StaticResource S.Row}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0"
+                         MaxWidth="480"
+                         HorizontalAlignment="Left"
+                         TextWrapping="Wrap"
+                         Text="The heap is set above, and the collector is the segmented control. Everything else in the set is listed."
+                         Style="{StaticResource T.Desc13}" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBox Width="260"
+                         Style="{StaticResource Txt.Field}"
+                         Tag="-XX:Flag=value"
+                         Text="{Binding NewFlag, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.AutomationId="NewFlagBox" />
+                <Button Margin="12,0,0,0"
+                        Style="{StaticResource Btn.SecondarySm}"
+                        Content="Add flag"
+                        Command="{Binding AddFlagCommand}"
+                        AutomationProperties.AutomationId="AddFlagButton" />
+              </StackPanel>
+            </Grid>
+          </Border>
+        </StackPanel>
+
+        <!-- ==================== video ==================== -->
+
+        <StackPanel Style="{StaticResource S.Section}">
+          <TextBlock Text="Video" Style="{StaticResource S.Heading}" />
+
+          <Border Style="{StaticResource S.Row.First}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0" MaxWidth="480" Margin="0,0,32,0" HorizontalAlignment="Left">
+                <TextBlock Text="Render distance" Style="{StaticResource T.Name14}" />
+                <TextBlock Margin="0,4,0,0"
+                           Text="{Binding RenderDistanceNote}"
+                           Style="{StaticResource T.Desc13Wrap}" />
+              </StackPanel>
+              <Border Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource Seg.Shell}">
+                <StackPanel Orientation="Horizontal">
+                  <RadioButton Style="{StaticResource Seg.Button}" GroupName="RenderDistance" Content="8"
+                               IsChecked="{Binding RenderDistanceIndex, Mode=TwoWay, Converter={StaticResource CvIndex.Zero}}"
+                               AutomationProperties.AutomationId="RenderDistance8" />
+                  <RadioButton Style="{StaticResource Seg.Button}" GroupName="RenderDistance" Content="10"
+                               IsChecked="{Binding RenderDistanceIndex, Mode=TwoWay, Converter={StaticResource CvIndex.One}}"
+                               AutomationProperties.AutomationId="RenderDistance10" />
+                  <RadioButton Style="{StaticResource Seg.Button}" GroupName="RenderDistance" Content="12"
+                               IsChecked="{Binding RenderDistanceIndex, Mode=TwoWay, Converter={StaticResource CvIndex.Two}}"
+                               AutomationProperties.AutomationId="RenderDistance12" />
+                  <RadioButton x:Name="RenderDistanceLast" Style="{StaticResource Seg.ButtonLast}" GroupName="RenderDistance" Content="16"
+                               IsChecked="{Binding RenderDistanceIndex, Mode=TwoWay, Converter={StaticResource CvIndex.Three}}"
+                               AutomationProperties.AutomationId="RenderDistance16" />
+                </StackPanel>
+              </Border>
+            </Grid>
+          </Border>
+
+          <Border Style="{StaticResource S.Row}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="Max FPS" Style="{StaticResource T.Name14}" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Slider Width="320"
+                        Style="{StaticResource Sld.Flat}"
+                        Minimum="0" Maximum="5"
+                        TickFrequency="1"
+                        IsSnapToTickEnabled="True"
+                        Value="{Binding FrameRateIndex, Mode=TwoWay}"
+                        AutomationProperties.AutomationId="MaxFpsSlider"
+                        AutomationProperties.Name="Maximum frames per second" />
+                <TextBlock Width="72"
+                           Margin="16,0,0,0"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           TextAlignment="Right"
+                           Text="{Binding FrameRateLabel}"
+                           Style="{StaticResource T.Readout16}" />
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <Border Style="{StaticResource S.Row}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0" MaxWidth="480" Margin="0,0,32,0" HorizontalAlignment="Left">
+                <TextBlock Text="Shaders" Style="{StaticResource T.Name14}" />
+                <TextBlock Margin="0,4,0,0"
+                           Text="{Binding ShadersNote}"
+                           Style="{StaticResource T.Desc13Wrap}" />
+              </StackPanel>
+              <ToggleButton Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource Tog.Square}"
+                            IsChecked="{Binding ShadersOn, Mode=TwoWay}"
+                            AutomationProperties.AutomationId="ShadersToggle"
+                            AutomationProperties.Name="Shaders" />
+            </Grid>
+          </Border>
+        </StackPanel>
+
+        <!-- ==================== account ==================== -->
+
+        <StackPanel Style="{StaticResource S.Section}">
+          <TextBlock Text="Account" Style="{StaticResource S.Heading}" />
+
+          <Border Style="{StaticResource S.Row.First}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0" MaxWidth="480" Margin="0,0,32,0" HorizontalAlignment="Left">
+                <TextBlock Text="Signed in as" Style="{StaticResource T.Name14}" />
+                <TextBlock Margin="0,4,0,0"
+                           Text="Offline and singleplayer work without signing in."
+                           Style="{StaticResource T.Desc13Wrap}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{Binding DataContext.AccountName, RelativeSource={RelativeSource AncestorType=Window}}"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource T.Name14Muted}" />
+                <Button Margin="16,0,0,0"
+                        Style="{StaticResource Btn.SecondarySm}"
+                        Content="{Binding DataContext.SignInLabel, RelativeSource={RelativeSource AncestorType=Window}}"
+                        Command="{Binding DataContext.LogInCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        AutomationProperties.AutomationId="SettingsSignInButton" />
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <!--
+               The one thing the user can type that is a name. It is the offline player name, it
+               is optional, and it is the only source this launcher has for a player name at all -
+               there is no credential behind it and no token. It names the offline instance, and it
+               decides which skin the account chip draws; leaving it blank keeps the default head.
+               Clear the field and the chip goes back to that default on the next refresh, with no
+               dialog and no sign-out, because there was never a sign-in.
+             -->
+          <Border Style="{StaticResource S.Row}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0" MaxWidth="480" Margin="0,0,32,0" HorizontalAlignment="Left">
+                <TextBlock Text="Offline player name" Style="{StaticResource T.Name14}" />
+                <TextBlock Margin="0,4,0,0"
+                           TextWrapping="Wrap"
+                           Text="Optional. It names the offline instance and picks the skin in the rail. It is not a sign-in."
+                           Style="{StaticResource T.Desc13Wrap}" />
+              </StackPanel>
+              <TextBox Grid.Column="1"
+                       Width="220"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource Txt.Field}"
+                       Tag="Not set"
+                       Text="{Binding OfflineName, UpdateSourceTrigger=LostFocus}"
+                       AutomationProperties.AutomationId="OfflineNameBox"
+                       AutomationProperties.Name="Offline player name" />
+            </Grid>
+          </Border>
+
+          <!-- The one line a failed sign-in produces, in the design's own quiet idiom. -->
+          <StackPanel Margin="0,16,0,0"
+                      Orientation="Horizontal"
+                      Visibility="{Binding DataContext.HasAccountMessage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource Cv.Bool}}">
+            <Border Style="{StaticResource Hollow}" />
+            <TextBlock Margin="8,0,0,0"
+                       TextWrapping="Wrap"
+                       Style="{StaticResource T.Desc13}"
+                       Text="{Binding DataContext.AccountMessage, RelativeSource={RelativeSource AncestorType=Window}}" />
+          </StackPanel>
+        </StackPanel>
+
+        <!-- ==================== advanced ==================== -->
+
+        <StackPanel Style="{StaticResource S.Section}">
+          <TextBlock Text="Advanced" Style="{StaticResource S.Heading}" />
+
+          <Border Style="{StaticResource S.Row.First}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0" MaxWidth="480" Margin="0,0,32,0" HorizontalAlignment="Left">
+                <TextBlock Text="Launch command" Style="{StaticResource T.Name14}" />
+                <TextBlock Margin="0,4,0,0"
+                           Text="What a launch would run, with the access token hidden."
+                           Style="{StaticResource T.Desc13Wrap}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock MaxWidth="420" HorizontalAlignment="Left"
+                           TextTrimming="CharacterEllipsis"
+                           Text="{Binding LaunchCommand}"
+                           Style="{StaticResource T.MonoValue12}"
+                           ToolTip="{Binding LaunchCommand}" />
+                <Button Margin="0,8,0,0"
+                        HorizontalAlignment="Right"
+                        Style="{StaticResource Btn.SecondarySm}"
+                        Content="Copy launch command"
+                        Command="{Binding CopyLaunchCommandCommand}"
+                        AutomationProperties.AutomationId="CopyLaunchCommandButton" />
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <!-- The Java rows, here rather than in their own section: the design gives Advanced
+               the launch-related things, and these are what decides how the game is launched. -->
+          <Border Style="{StaticResource S.Row}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="Java" Style="{StaticResource T.Name14}" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <ComboBox Width="280"
+                          Style="{StaticResource Cbo.Block}"
+                          ItemsSource="{Binding JavaSources}"
+                          SelectedIndex="{Binding JavaSourceIndex, Mode=TwoWay}"
+                          AutomationProperties.AutomationId="JavaSourceCombo" />
+                <Button Margin="12,0,0,0"
+                        Style="{StaticResource Btn.SecondarySm}"
+                        Content="Probe"
+                        Command="{Binding ProbeJavaCommand}"
+                        AutomationProperties.AutomationId="ProbeJavaButton" />
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <Border Style="{StaticResource S.Row}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0" MaxWidth="480" Margin="0,0,32,0" HorizontalAlignment="Left">
+                <TextBlock Text="Game window" Style="{StaticResource T.Name14}" />
+                <TextBlock Margin="0,4,0,0"
+                           Text="{Binding ProbeResult}"
+                           TextWrapping="Wrap"
+                           Style="{StaticResource T.Desc13}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBox Width="96" Style="{StaticResource Txt.Field}"
+                         Text="{Binding WindowWidth, UpdateSourceTrigger=LostFocus}"
+                         AutomationProperties.AutomationId="WindowWidthBox" />
+                <TextBlock Margin="8,0" Text="×" Style="{StaticResource T.Desc13}" />
+                <TextBox Width="96" Style="{StaticResource Txt.Field}"
+                         Text="{Binding WindowHeight, UpdateSourceTrigger=LostFocus}"
+                         AutomationProperties.AutomationId="WindowHeightBox" />
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <Border Style="{StaticResource S.Row}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" MaxWidth="480" HorizontalAlignment="Left" TextWrapping="Wrap"
+                         Text="Reduce usage while playing. The game is a separate process either way."
+                         Style="{StaticResource T.Desc13}" />
+              <ToggleButton Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource Tog.Square}"
+                            IsChecked="{Binding ReduceUsageWhilePlaying, Mode=TwoWay}"
+                            AutomationProperties.AutomationId="ReduceUsageToggle" />
+            </Grid>
+          </Border>
+
+          <Border Style="{StaticResource S.Row}">
+            <Grid Style="{StaticResource S.RowGrid}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" MaxWidth="480" HorizontalAlignment="Left" TextWrapping="Wrap"
+                         Text="Close to tray instead of exiting."
+                         Style="{StaticResource T.Desc13}" />
+              <ToggleButton Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource Tog.Square}"
+                            IsChecked="{Binding CloseToTray, Mode=TwoWay}"
+                            AutomationProperties.AutomationId="CloseToTrayToggle" />
+            </Grid>
+          </Border>
+        </StackPanel>
+
+        <!-- ==================== the log ==================== -->
+
+        <StackPanel Style="{StaticResource S.Section}">
+          <TextBlock Text="Log" Style="{StaticResource S.Heading}" />
+          <TextBlock Margin="0,0,0,16"
+                     MaxWidth="620"
+                     HorizontalAlignment="Left"
+                     TextWrapping="Wrap"
+                     Text="The launcher's own log, redacted on the way in. The game's logs are read, never written, rotated or deleted."
+                     Style="{StaticResource T.Desc13}" />
+          <v:DiagnosticsView DataContext="{Binding Diagnostics}" />
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

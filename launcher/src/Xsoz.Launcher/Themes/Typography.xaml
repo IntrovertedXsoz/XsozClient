@@ -1,0 +1,229 @@
+﻿<!--
+  ============================================================================
+  TYPOGRAPHY. Transcribed from the design's type table.
+  ============================================================================
+
+  Two families, both SIL OFL 1.1, both already bundled:
+
+    DISPLAY  Monocraft  48 (version number, ramp value)
+                        32 (page title, primary button)
+                        24 (section heading, drawer title)
+                        16 (compact PLAY, brand wordmark, NOW flag)
+    UI       Inter      16, 14 (labels, row names)
+                        13 (descriptions, helper, status line)
+                        12 (eyebrows, uppercase 0.12em, log text)
+    MONO     the system mono stack, for numbers you tune while adjusting:
+             memory readouts, slider values, JVM flags, the log.
+
+  THE RULE THAT MATTERS: Monocraft never sets a sentence. It sets the version
+  number, page and section headings, and the primary button. Every number a
+  player reads while tuning - memory, cm/360, JVM flags, slider values - is
+  Inter or the system mono stack, because Monocraft makes "4 GB" hard to read
+  at 16px. The cm/360 chips and the ramp labels in this launcher are therefore
+  Inter, not Monocraft, even though the mockup's own stylesheet reaches for the
+  pixel face on a couple of them.
+
+  Sizes are multiples of 8 on the display ramp (16/24/32/48) so the pixel grid
+  lands on whole pixels at 100%; at 125% and 150% they become 20/30/40/60 and
+  24/36/48/72, which are still whole pixels.
+
+  TextOptions.TextFormattingMode="Display" is set on every Monocraft style:
+  that is what stops the pixel face being hinted into illegibility, and it is
+  the WPF equivalent of the mockup's crispEdges instruction for type.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+  <!-- ============================ families ============================= -->
+
+  <!-- pixel: Monocraft, with the mockup's own fallback chain. -->
+  <FontFamily x:Key="F.Display">Monocraft, Consolas, monospace</FontFamily>
+
+  <!-- ui: Inter first, then the system UI faces the mockup names. -->
+  <FontFamily x:Key="F.Ui">Inter, Segoe UI, Tahoma, sans-serif</FontFamily>
+
+  <!-- mono: for the numbers you tune. Never Monocraft. -->
+  <FontFamily x:Key="F.Mono">Cascadia Mono, Consolas, Courier New, monospace</FontFamily>
+
+  <!-- Legacy family keys, pointed at the contract families. -->
+  <FontFamily x:Key="F.MonoDisplay">Monocraft, Consolas, monospace</FontFamily>
+
+  <!-- ============================ sizes (DIP) ========================== -->
+
+  <!-- display ramp -->
+  <sys:Double x:Key="D.48">48</sys:Double>
+  <sys:Double x:Key="D.32">32</sys:Double>
+  <sys:Double x:Key="D.24">24</sys:Double>
+  <sys:Double x:Key="D.16">16</sys:Double>
+  <sys:Double x:Key="D.12">12</sys:Double>
+
+  <!-- interface ramp -->
+  <sys:Double x:Key="U.16">16</sys:Double>
+  <sys:Double x:Key="U.14">14</sys:Double>
+  <sys:Double x:Key="U.13">13</sys:Double>
+  <sys:Double x:Key="U.12">12</sys:Double>
+
+  <!-- legacy size keys -->
+  <sys:Double x:Key="S.XXs">9</sys:Double>
+  <sys:Double x:Key="S.Xs">10</sys:Double>
+  <sys:Double x:Key="S.Sm">11</sys:Double>
+  <sys:Double x:Key="S.Md">12</sys:Double>
+  <sys:Double x:Key="S.Body">13</sys:Double>
+  <sys:Double x:Key="S.BodyLg">14</sys:Double>
+  <sys:Double x:Key="S.Lg">16</sys:Double>
+  <sys:Double x:Key="S.Xl">20</sys:Double>
+  <sys:Double x:Key="S.Xxl">26</sys:Double>
+  <sys:Double x:Key="S.Hero">40</sys:Double>
+  <sys:Double x:Key="S.Huge">54</sys:Double>
+
+  <!-- ============================ metrics ============================== -->
+
+  <sys:Double x:Key="M.Control">44</sys:Double>
+  <sys:Double x:Key="M.ControlSm">30</sys:Double>
+  <sys:Double x:Key="M.Row">64</sys:Double>
+  <sys:Double x:Key="M.PagePad">48</sys:Double>
+  <sys:Double x:Key="M.Gutter">16</sys:Double>
+  <Thickness x:Key="M.Pad">14,12,14,12</Thickness>
+  <Thickness x:Key="M.PadSm">10,7,10,7</Thickness>
+  <Thickness x:Key="M.PadLg">22,18,22,18</Thickness>
+
+  <!-- ============================ display ============================== -->
+
+  <Style x:Key="T.Display48" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource F.Display}" />
+    <Setter Property="FontSize" Value="{StaticResource D.48}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+  </Style>
+
+  <Style x:Key="T.Display32" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource F.Display}" />
+    <Setter Property="FontSize" Value="{StaticResource D.32}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+  </Style>
+
+  <Style x:Key="T.Display24" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource F.Display}" />
+    <Setter Property="FontSize" Value="{StaticResource D.24}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+  </Style>
+
+  <Style x:Key="T.Display16" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource F.Display}" />
+    <Setter Property="FontSize" Value="{StaticResource D.16}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+  </Style>
+
+  <!-- ============================ interface ============================= -->
+
+  <!-- 12px, 600, uppercase, 0.12em tracking. Every group heading in the design. -->
+  <Style x:Key="T.Eyebrow" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource F.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource U.12}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource B.Text3}" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+  </Style>
+
+  <!-- 16 running text: About prose, the install step name. -->
+  <Style x:Key="T.Body16" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource F.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource U.16}" />
+    <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <Style x:Key="T.Body16Muted" TargetType="TextBlock" BasedOn="{StaticResource T.Body16}">
+    <Setter Property="Foreground" Value="{StaticResource B.Text2}" />
+  </Style>
+
+  <!-- 14: row names and settings labels. -->
+  <Style x:Key="T.Name14" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource F.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource U.14}" />
+    <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+  </Style>
+
+  <Style x:Key="T.Name14Strong" TargetType="TextBlock" BasedOn="{StaticResource T.Name14}">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style x:Key="T.Name14Muted" TargetType="TextBlock" BasedOn="{StaticResource T.Name14}">
+    <Setter Property="Foreground" Value="{StaticResource B.Text2}" />
+  </Style>
+
+  <!-- 13: descriptions, helpers, the status line. -->
+  <Style x:Key="T.Desc13" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource F.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource U.13}" />
+    <Setter Property="Foreground" Value="{StaticResource B.Text2}" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+  </Style>
+
+  <Style x:Key="T.Desc13Wrap" TargetType="TextBlock" BasedOn="{StaticResource T.Desc13}">
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <!-- 12: captions and the token list under a slider. -->
+  <Style x:Key="T.Caption12" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource F.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource U.12}" />
+    <Setter Property="Foreground" Value="{StaticResource B.Text3}" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+  </Style>
+
+  <!-- A value readout you tune: Inter, tabular figures, 16px, right aligned. -->
+  <Style x:Key="T.Readout16" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource F.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource U.16}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+  </Style>
+
+  <!-- A mono value you tune: JVM flags, paths, the log. Never Monocraft. -->
+  <Style x:Key="T.MonoValue13" TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource F.Mono}" />
+    <Setter Property="FontSize" Value="{StaticResource U.13}" />
+    <Setter Property="Foreground" Value="{StaticResource B.Text2}" />
+    <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+  </Style>
+
+  <Style x:Key="T.MonoValue12" TargetType="TextBlock" BasedOn="{StaticResource T.MonoValue13}">
+    <Setter Property="FontSize" Value="{StaticResource U.12}" />
+  </Style>
+
+  <!-- ============================ legacy map ============================
+       The pre-port style keys, mapped onto the contract roles so a view that
+       has not been rewritten for the new layout still renders in the design
+       system rather than in the old one.
+       ==================================================================== -->
+
+  <Style x:Key="T.Wordmark" TargetType="TextBlock" BasedOn="{StaticResource T.Display16}" />
+  <Style x:Key="T.ScreenTitle" TargetType="TextBlock" BasedOn="{StaticResource T.Display32}" />
+  <Style x:Key="T.SectionTitle" TargetType="TextBlock" BasedOn="{StaticResource T.Display24}" />
+  <Style x:Key="T.BlockLabel" TargetType="TextBlock" BasedOn="{StaticResource T.Eyebrow}" />
+  <Style x:Key="T.Mono" TargetType="TextBlock" BasedOn="{StaticResource T.MonoValue13}" />
+  <Style x:Key="T.MonoMuted" TargetType="TextBlock" BasedOn="{StaticResource T.MonoValue13}">
+    <Setter Property="Foreground" Value="{StaticResource B.Text3}" />
+  </Style>
+  <Style x:Key="T.MonoValue" TargetType="TextBlock" BasedOn="{StaticResource T.MonoValue13}" />
+  <Style x:Key="T.Body" TargetType="TextBlock" BasedOn="{StaticResource T.Desc13Wrap}" />
+  <Style x:Key="T.BodyBright" TargetType="TextBlock" BasedOn="{StaticResource T.Desc13Wrap}">
+    <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+  </Style>
+  <Style x:Key="T.BodySmall" TargetType="TextBlock" BasedOn="{StaticResource T.Desc13Wrap}" />
+  <Style x:Key="T.MonoSmall" TargetType="TextBlock" BasedOn="{StaticResource T.MonoValue13}" />
+  <Style x:Key="T.MonoTiny" TargetType="TextBlock" BasedOn="{StaticResource T.MonoValue12}" />
+  <Style x:Key="T.Log" TargetType="TextBlock" BasedOn="{StaticResource T.MonoValue12}" />
+
+</ResourceDictionary>

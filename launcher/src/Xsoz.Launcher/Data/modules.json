@@ -1,0 +1,215 @@
+{
+  "schema": 1,
+  "note": "Module registry for the XsozClient launcher. This is the launcher's UI shell over OUR OWN module surface. The mod is the source of truth at runtime; the launcher writes the same config schema. Third-party components are never listed here as modules - they live behind the signed manifest and are surfaced in the attributions panel only.",
+  "categories": [
+    { "id": "performance", "name": "Performance", "blurb": "Frame-time work. All of it is on the server allowlist and none of it touches a packet." },
+    { "id": "hud", "name": "HUD", "blurb": "Read-outs and overlays. Draw budget only." },
+    { "id": "visual", "name": "Visual", "blurb": "How the world is drawn. Every one of these is a visibility trade, not a free win." },
+    { "id": "qol", "name": "Quality of life", "blurb": "Things that remove friction without adding information." },
+    { "id": "coaching", "name": "Coaching", "blurb": "Measurement and drill feedback. Local only, never uploaded." },
+    { "id": "media", "name": "Media", "blurb": "Recording and staging tools for your own clips and stills." }
+  ],
+  "modules": [
+    {
+      "id": "perf.render_pipeline",
+      "name": "Render Pipeline Replacement",
+      "category": "performance",
+      "tier": "A",
+      "defaultEnabled": true,
+      "summary": "Replaces chunk meshing, culling and the immediate-mode batcher with a version-matched implementation.",
+      "detail": "Biggest single frame-time win available and the one most likely to be on any allowlist, because it changes only how the client draws what the server already sent. On this machine the win is a 3.3x reduction in chunk-build worker threads, not a shader change.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "perf.tick_offload",
+      "name": "Client Tick Offload",
+      "category": "performance",
+      "tier": "A",
+      "defaultEnabled": true,
+      "summary": "Skips client-side work that only exists to satisfy a server that is not being listened to.",
+      "detail": "Pure CPU saving on the client tick: ambient-sound attempts, water-creature breathing ticks, client-side entity brains, and biome particle spawns. No packet is created, reordered or delayed.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "perf.heap_compaction",
+      "name": "Heap Compaction",
+      "category": "performance",
+      "tier": "A",
+      "defaultEnabled": true,
+      "summary": "Shrinks the blockstate and model caches so the collector has less live set to walk.",
+      "detail": "On 16 GB shared with Windows 11, a browser and an integrated GPU's memory carve-out, a smaller live set means fewer G1 cycles and fewer page faults. A memory optimisation that behaves like a frame-time one.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "perf.socket_flush_batch",
+      "name": "Socket Flush Batching",
+      "category": "performance",
+      "tier": "A",
+      "defaultEnabled": true,
+      "summary": "Batches network flushes so a burst of packets becomes one syscall instead of many.",
+      "detail": "Reduces per-packet syscall count on the client's receive path. It does not change packet content, ordering, or timing relative to the game tick.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "perf.async_occlusion",
+      "name": "Async Occlusion Culling",
+      "category": "performance",
+      "tier": "A",
+      "defaultEnabled": true,
+      "summary": "Traces visibility off the render thread so fully-occluded entities are never submitted.",
+      "detail": "Costs a little memory and a little latency in the trace result, both off the critical path. Complementary to the render pipeline replacement, not a replacement for it.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "perf.chunk_replay",
+      "name": "Chunk Replay Cache",
+      "category": "performance",
+      "tier": "B",
+      "defaultEnabled": false,
+      "summary": "Caches server-sent chunks to disk and replays them past the server's view distance.",
+      "detail": "Chunks only. No entities, no block updates, and only terrain you have already walked to. Information-safe: it shows you geometry the server has already sent you. The largest render-distance win in an enclosed arena, and the reason it is off by default - it is a visual claim, and any visual claim has to be one you are willing to declare.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "hud.fps_module",
+      "name": "Frame Timing Read-out",
+      "category": "hud",
+      "tier": "A",
+      "defaultEnabled": true,
+      "summary": "Frame time, frame percentiles and heap occupancy, drawn as three blocky glyphs.",
+      "detail": "Percentiles matter more than the mean. A client that reports p99 tells you whether you have a steady frame time or a good average hiding bad frames.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "hud.cooldown_module",
+      "name": "Attack Cooldown Bar",
+      "category": "hud",
+      "tier": "A",
+      "defaultEnabled": true,
+      "summary": "The vanilla attack cooldown, promoted to a readable bar in the hotbar.",
+      "detail": "Necessary for W-tap and D-tap at all: the timing is only usable if it is visible. This is a repositioning of a vanilla HUD element, not new information.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "hud.crosshair_module",
+      "name": "Competitive Crosshair",
+      "category": "hud",
+      "tier": "A",
+      "defaultEnabled": true,
+      "summary": "A thin, high-contrast crosshair that does not scale with GUI scale.",
+      "detail": "A crosshair that changes size with your GUI scale is a crosshair you have to re-learn every time you change it. This one is fixed in device-independent units and follows the on-screen pixel grid.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "visual.opaque_leaves",
+      "name": "Opaque Leaves",
+      "category": "visual",
+      "tier": "B",
+      "defaultEnabled": false,
+      "summary": "Renders leaf blocks as solid rather than see-through, so occluded faces stop being drawn.",
+      "detail": "This is a visibility change in both directions and has to be declared to staff. The honest framing: it makes more geometry opaque, which cuts draw work and also means you can see more through foliage. It is not a free win, it is a trade you are choosing.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "visual.transparency_passthrough",
+      "name": "Order-Independent Transparency",
+      "category": "visual",
+      "tier": "B",
+      "defaultEnabled": false,
+      "summary": "Enables the newer order-independent transparency algorithm for glass and water.",
+      "detail": "Mojang's own release note for this algorithm states the performance impact is higher than the previous implementation. On a fill-rate-bound integrated GPU this is the single largest quality regression available. Off.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "visual.cloud_render",
+      "name": "Cloud Rendering",
+      "category": "visual",
+      "tier": "A",
+      "defaultEnabled": false,
+      "summary": "Draws the sky cloud layer.",
+      "detail": "A full-sky quad of overdraw, every frame, for an effect the player is looking through in almost every fight. Off. The honest note is that the vanilla setting label overstates it - the frame cost is real, the community consensus about it is exaggerated.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "visual.damage_tilt",
+      "name": "Damage Tilt",
+      "category": "visual",
+      "tier": "A",
+      "defaultEnabled": true,
+      "summary": "The screen-space camera roll on taking damage.",
+      "detail": "A pure presentation effect. The default profile runs it at 35 percent, which is a published setting rather than a guess - see the Profiles screen for where that number comes from.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "qol.quick_relaunch",
+      "name": "One-Key Relaunch",
+      "category": "qol",
+      "tier": "A",
+      "defaultEnabled": true,
+      "summary": "Returns to the launcher with one keypress, remembers the version and profile, and starts the game again.",
+      "detail": "Does not keep the launcher alive for you. The launcher is a tray app and the game is a separate process; closing the launcher never stops the game.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "qol.profile_cycler",
+      "name": "Profile Cycler",
+      "category": "qol",
+      "tier": "A",
+      "defaultEnabled": true,
+      "summary": "One hotkey steps through saved profiles, so a sensitivity or FOV change is a single press rather than a settings trip.",
+      "detail": "Useful during an adaptation ramp: you can drop back to the previous stage instantly without editing anything, which is the whole point of ramping rather than jumping.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "coach.timing_capture",
+      "name": "Loop Timing Capture",
+      "category": "coaching",
+      "tier": "A",
+      "defaultEnabled": false,
+      "summary": "Records place-to-break intervals and reports median and p90 instead of an average.",
+      "detail": "Deliberate practice research is clear that the effect weakens as measurement gets more precise, and that task-specific practice beats accumulated practice. Both of those point the same way: measure the specific loop, precisely, locally. Data never leaves this machine.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "coach.drill_prompts",
+      "name": "Drill Prompts",
+      "category": "coaching",
+      "tier": "B",
+      "defaultEnabled": false,
+      "summary": "Shows the next drill to run, chosen from the technique you are actually practising.",
+      "detail": "The slow-falling dummy drill is the right one to start from because it fixes the opponent's airtime to a known window, which isolates your own timing from your ping. Tier B because the drill list is a convention, not a measurement - it is a suggestion, and it is labelled as one.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "vis.iris",
+      "name": "Iris Shaders",
+      "category": "visual",
+      "tier": "A",
+      "defaultEnabled": false,
+      "summary": "Shader pack loader. Costs a lot of frame time on integrated graphics.",
+      "detail": "Iris replaces the vanilla lighting and sky with a shader pack you pick. On this laptop's integrated GPU that is by far the largest frame-time cost available, which is why it ships off: the default profile is the fast one. Turn it on when you want the look, and turn it off before you queue.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "media.flashback",
+      "name": "Flashback",
+      "category": "media",
+      "tier": "A",
+      "defaultEnabled": true,
+      "summary": "Records your matches to video, and can trim and export the clips.",
+      "detail": "Flashback is the maintained fork of Replay Mod. PvPHQ permits both for recording purposes, so it is on by default: it records while you play and gives you a timeline to trim and export from afterwards. It downloads from Modrinth at install time, like every other mod here.",
+      "requiresVersions": ["1.21.11"]
+    },
+    {
+      "id": "media.npc_studio",
+      "name": "NPC Studio",
+      "category": "media",
+      "tier": "A",
+      "defaultEnabled": false,
+      "summary": "Stage characters, poses and cameras to shoot thumbnails and stills in-game.",
+      "detail": "A client-side creation tool: you place characters, set a pose and a camera, and shoot a thumbnail or a still in the world. It is off by default because it is something you load when you are making something, not something you want loaded while you are queuing. NPC Studio is All Rights Reserved, so the launcher downloads it from Modrinth at install time and never bundles, mirrors or embeds it.",
+      "requiresVersions": ["1.21.11"]
+    }
+  ]
+}
+

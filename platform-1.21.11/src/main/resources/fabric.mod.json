@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "xsozclient",
+  "version": "${version}",
+  "name": "Xsoz Client",
+  "description": "Competitive PvP client with the Crystal Trainer.",
+  "authors": ["Xsoz"],
+  "license": "MIT",
+  "icon": "assets/xsoz/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": ["dev.xsoz.client.XsozClient"]
+  },
+  "mixins": ["xsoz.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.11",
+    "java": ">=21"
+  }
+}

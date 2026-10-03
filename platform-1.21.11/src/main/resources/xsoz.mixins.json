@@ -1,0 +1,29 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.xsoz.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "EntityFlagAccessor"
+  ],
+  "client": [
+    "ClientPlayNetworkHandlerMixin",
+    "ClientPlayerInteractionManagerMixin",
+    "EndCrystalEntityMixin",
+    "ExplosionImplMixin",
+    "GameOptionsMixin",
+    "GameRendererMixin",
+    "HeldItemRendererMixin",
+    "InGameOverlayRendererMixin",
+    "InactivityFpsLimiterMixin",
+    "KeyBindingAccessor",
+    "MinecraftClientMixin",
+    "MusicTrackerMixin",
+    "ParticleManagerMixin",
+    "PlayerAdvancementTrackerMixin",
+    "PressableWidgetMixin",
+    "RespawnAnchorBlockMixin",
+    "SimpleOptionMixin"
+  ],
+  "injectors": { "defaultRequire": 1 }
+}

@@ -1,0 +1,312 @@
+﻿<UserControl x:Class="Xsoz.Launcher.Views.ModsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="clr-namespace:Xsoz.Launcher.Views"
+             xmlns:vm="clr-namespace:Xsoz.Launcher.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:ModsViewModel}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+
+  <!--
+    MODS. A search box, a plain count, and flat rows that open in place.
+
+    A row is 64px closed: a 56px cell for the switch, the name over one line of description, and
+    a caret. The switch is deliberately OUTSIDE the header button's span, so clicking it toggles
+    the module and never opens the row - the design says so twice and it is the difference
+    between a list you can scan and a list you fight.
+
+    Open, the row gains a 3px accent bar on its left edge, the surface fill, and a body indented
+    68px: the long description, the one quiet note four of the modules carry, and nothing else.
+    There is no dialog anywhere on this screen.
+  -->
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <v:TopBarView Grid.Row="0" Title="Mods" />
+
+    <Grid Grid.Row="1">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <!-- ==================== tools ==================== -->
+
+      <Grid Grid.Row="0"
+            MaxWidth="{StaticResource M.ContentMaxWidth}"
+            Margin="48,0"
+            HorizontalAlignment="Stretch">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <TextBox Grid.Column="0"
+                 Style="{StaticResource Txt.Search}"
+                 Tag="Search modules"
+                 Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.AutomationId="ModsSearchBox"
+                 AutomationProperties.Name="Search modules" />
+
+        <StackPanel Grid.Column="1"
+                    Margin="24,0,0,0"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    AutomationProperties.AutomationId="ModuleCount">
+          <TextBlock Text="{Binding EnabledCount}"
+                     Style="{StaticResource T.Desc13}"
+                     FontWeight="SemiBold"
+                     Foreground="{StaticResource B.Text}" />
+          <TextBlock Text="{Binding CountRemainder}"
+                     Style="{StaticResource T.Desc13}"
+                     Foreground="{StaticResource B.Text2}" />
+        </StackPanel>
+      </Grid>
+
+      <!-- ==================== the list ==================== -->
+
+      <ScrollViewer Grid.Row="2"
+                    MaxWidth="{StaticResource M.ContentMaxWidth}"
+                    Margin="48,16,48,0"
+                    HorizontalAlignment="Stretch"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+
+          <Border Grid.Row="0"
+                  BorderBrush="{StaticResource B.Line}"
+                  BorderThickness="0,1,0,0"
+                  SnapsToDevicePixels="True" />
+
+          <ItemsControl Grid.Row="1"
+                        ItemsSource="{Binding Rows}"
+                        AutomationProperties.AutomationId="ModuleList">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <!--
+                  The row is a surface with a rule under it, plus the 3px accent bar laid over
+                  its left edge when it is open. The bar is a sibling rather than part of the
+                  row's own template because a Border has no template to change: the trigger
+                  that shows it and the trigger that changes the fill are the same one, and
+                  both are ordinary DataTriggers on the row's own state.
+                -->
+                <Grid>
+                  <Border SnapsToDevicePixels="True">
+                    <Border.Style>
+                      <Style TargetType="Border">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="BorderBrush" Value="{StaticResource B.LineSoft}" />
+                        <Setter Property="BorderThickness" Value="{StaticResource H.RuleBottom}" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                            <Setter Property="Background" Value="{StaticResource B.Surface}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Border.Style>
+
+                    <!--
+                      Two rows, not two cells. An open row's body used to sit in the same
+                      grid cell as the header and drew straight over it, which is the kind of
+                      defect that only exists when a row is actually opened and so never
+                      appears in a still of the collapsed list.
+                    -->
+                    <Grid>
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                      </Grid.RowDefinitions>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="56" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="24" />
+                      </Grid.ColumnDefinitions>
+
+                    <!-- The switch. Its own cell, outside the header button, so a click on it
+                         never expands the row. -->
+                    <ToggleButton Grid.Row="0" Grid.Column="0"
+                                  Width="40"
+                                  Height="22"
+                                  Margin="12,0,0,0"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Center"
+                                  Style="{StaticResource Tog.Square}"
+                                  IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                  IsEnabled="{Binding CanToggle}"
+                                  AutomationProperties.AutomationId="ModuleToggle"
+                                  AutomationProperties.Name="{Binding Name}"
+                                  AutomationProperties.HelpText="{Binding Summary}" />
+
+                    <!-- The header. Enter or Space opens it, which is why it is a button. -->
+                    <Button Grid.Row="0" Grid.Column="1"
+                            MinHeight="64"
+                            HorizontalAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            FocusVisualStyle="{StaticResource Focus.Ring}"
+                            Command="{Binding DataContext.ToggleRowCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CommandParameter="{Binding}"
+                            AutomationProperties.AutomationId="ModuleHeader"
+                            AutomationProperties.Name="{Binding Name}">
+                      <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                          <Border x:Name="Bd" Background="Transparent">
+                            <StackPanel Margin="0,12,12,12" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding Name}" Style="{StaticResource T.Name14Strong}" />
+                              <TextBlock Margin="0,4,0,0"
+                                         Text="{Binding Summary}"
+                                         Style="{StaticResource T.Desc13}"
+                                         TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                          </Border>
+                          <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                              <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.Surface}" />
+                            </Trigger>
+                          </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                      </Button.Template>
+                    </Button>
+
+                    <!-- The caret. It turns over when the row is open, which is the only thing
+                         that tells you the block below it belongs to this row. The rotation is a
+                         plain Setter on RenderTransform rather than a storyboard: the design says
+                         rows expand instantly, and a target name inside a Style trigger cannot
+                         reach an element in a DataTemplate in any case. -->
+                    <Path Grid.Row="0" Grid.Column="2"
+                          Width="16" Height="16"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          Data="{StaticResource I.Caret}"
+                          Fill="{StaticResource B.Text3}"
+                          IsHitTestVisible="False">
+                      <Path.Style>
+                        <Style TargetType="Path">
+                          <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+                          <Setter Property="RenderTransform">
+                            <Setter.Value>
+                              <RotateTransform Angle="0" />
+                            </Setter.Value>
+                          </Setter>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                              <Setter Property="RenderTransform">
+                                <Setter.Value>
+                                  <RotateTransform Angle="180" />
+                                </Setter.Value>
+                              </Setter>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                              <Setter Property="Fill" Value="{StaticResource B.Text}" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Path.Style>
+                    </Path>
+
+                    <!-- ==================== the body ====================
+
+                         OPEN AND CLOSE INSTANTLY, AND THAT IS A DECISION, NOT AN OMISSION.
+
+                         COMPONENTS.md section 3 says "There is no animation and no dialog", and
+                         DESIGN-NOTES says "rows expand instantly". The only composition-free way
+                         to animate a height in WPF is a LayoutTransform with a Y scale on the
+                         body, and that re-runs measure and arrange for this row and every row
+                         above it on every frame - twenty rows of template tree, eight times over
+                         140 ms, on the integrated GPU that is also drawing the game. It also
+                         squashes the body text vertically while it runs, which on a face this
+                         crisp and this flat is the one thing that would look cheap.
+
+                         So the body snaps, in one layout pass, and nothing about the row animates.
+                         Themes\Motion.cs carries the same reasoning for the whole product, and
+                         the motioncheck switch on the executable is what keeps it honest. -->
+
+                    <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                Margin="68,4,24,24"
+                                Visibility="{Binding BodyVisibility}">
+                      <TextBlock Text="{Binding Detail}"
+                                 MaxWidth="620"
+                                 HorizontalAlignment="Left"
+                                 TextWrapping="Wrap"
+                                 Style="{StaticResource T.Name14Muted}"
+                                 LineHeight="21" />
+
+                      <!-- The four quiet notes, and the only compliance-flavoured sentence in
+                           the whole product. Muted, hollow square, after a row is opened. -->
+                      <StackPanel Margin="0,16,0,0"
+                                  Orientation="Horizontal"
+                                  Visibility="{Binding Note, Converter={StaticResource Cv.StrToVis}}">
+                        <Border Style="{StaticResource Hollow}" />
+                        <TextBlock Margin="8,0,0,0"
+                                   TextWrapping="Wrap"
+                                   Style="{StaticResource T.Desc13}"
+                                   Text="{Binding Note}" />
+                      </StackPanel>
+                    </StackPanel>
+                    </Grid>
+                  </Border>
+
+                  <!-- The 3px accent bar on the open row's left edge. -->
+                  <Border Width="3"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Stretch"
+                          SnapsToDevicePixels="True">
+                    <Border.Style>
+                      <Style TargetType="Border">
+                        <Setter Property="Background" Value="{StaticResource B.Accent}" />
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Border.Style>
+                  </Border>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <!-- ==================== no results ==================== -->
+
+          <StackPanel Grid.Row="1"
+                      Margin="0,72,0,72"
+                      HorizontalAlignment="Center"
+                      Visibility="{Binding IsEmpty, Converter={StaticResource Cv.Bool}}"
+                      AutomationProperties.AutomationId="ModuleListEmpty">
+            <Grid Width="44" Height="12" HorizontalAlignment="Center" Margin="0,0,0,24">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="12" />
+              </Grid.ColumnDefinitions>
+              <Border Grid.Column="0" Background="{StaticResource B.SegEmpty}" />
+              <Border Grid.Column="2" Background="{StaticResource B.AccentDeep}" />
+            </Grid>
+            <TextBlock Text="Nothing matches that search."
+                       HorizontalAlignment="Center"
+                       Style="{StaticResource T.Name14Strong}" />
+            <TextBlock Margin="0,8,0,0"
+                       Text="Every module in the registry is listed when the box is empty."
+                       HorizontalAlignment="Center"
+                       Style="{StaticResource T.Desc13}" />
+          </StackPanel>
+        </Grid>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>

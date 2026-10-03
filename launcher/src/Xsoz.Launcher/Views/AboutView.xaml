@@ -1,0 +1,148 @@
+<UserControl x:Class="Xsoz.Launcher.Views.AboutView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="clr-namespace:Xsoz.Launcher.Views"
+             xmlns:vm="clr-namespace:Xsoz.Launcher.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:AboutViewModel}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+
+  <!--
+    ABOUT. Prose at 640px, a key-value list, and the legally required line as its own bordered
+    block.
+
+    The MUG line is a bordered block rather than a footnote because it is the one sentence on this
+    screen that is a legal requirement rather than a description, and it is rendered as a distinct
+    object for that reason alone. It appears exactly once in the product: the design removed the
+    footer that used to repeat it on all four screens.
+  -->
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <v:TopBarView Grid.Row="0" Title="About" />
+
+    <ScrollViewer Grid.Row="1"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+      <StackPanel MaxWidth="640"
+                  Margin="48,24,48,72"
+                  HorizontalAlignment="Stretch">
+
+        <TextBlock TextWrapping="Wrap" LineHeight="26" Style="{StaticResource T.Body16Muted}">
+          <Run Text="XsozClient is a launcher and mod set for Minecraft Java 1.21.11, made for competitive PvP." />
+          <Run Text=" It installs the game, Fabric and its own mods for you, writes performance and video settings, and keeps your profiles, so you never build a mods folder by hand."
+               FontWeight="SemiBold"
+               Foreground="{StaticResource B.Text}" />
+        </TextBlock>
+
+        <TextBlock Margin="0,16,0,0"
+                   TextWrapping="Wrap"
+                   LineHeight="26"
+                   Style="{StaticResource T.Body16Muted}"
+                   Text="It is not a cheat client. It does not automate anything, show you anything about other players that your own screen would not, or change what your client sends to a server. The modules that would are not in the program at all." />
+
+        <TextBlock Margin="0,16,0,0"
+                   TextWrapping="Wrap"
+                   LineHeight="26"
+                   Style="{StaticResource T.Body16Muted}"
+                   Text="It cannot sign you in online yet. Mojang only lets launchers with an approved app registration do that, and this one does not have one. Until it does, you sign in through your normal Minecraft app." />
+
+        <!-- The legally required line, on its own. -->
+        <Border Margin="0,32,0,0"
+                Padding="20,16"
+                Background="{StaticResource B.Surface}"
+                BorderBrush="{StaticResource B.Line}"
+                BorderThickness="{StaticResource H.Hair}"
+                SnapsToDevicePixels="True"
+                AutomationProperties.AutomationId="LegalBlock">
+          <TextBlock TextWrapping="Wrap" LineHeight="21" Style="{StaticResource T.Name14}">
+            <Run Text="Not an official Mojang or Microsoft product." FontWeight="SemiBold" />
+          </TextBlock>
+        </Border>
+
+        <!-- ==================== key and value ==================== -->
+
+        <Grid Margin="0,32,0,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="140" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <TextBlock Grid.Row="0" Grid.Column="0" Text="VERSION" Style="{StaticResource T.Eyebrow}" Margin="0,6,0,0" />
+          <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding VersionText}" Style="{StaticResource T.Name14}" Margin="0,6,0,0" />
+
+          <TextBlock Grid.Row="1" Grid.Column="0" Text="GAME" Style="{StaticResource T.Eyebrow}" Margin="0,6,0,0" />
+          <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding GameText}" Style="{StaticResource T.Name14}" Margin="0,6,0,0" />
+
+          <TextBlock Grid.Row="2" Grid.Column="0" Text="SOURCE" Style="{StaticResource T.Eyebrow}" Margin="0,6,0,0" />
+          <TextBlock Grid.Row="2" Grid.Column="1" Text="Open source" Style="{StaticResource T.Name14}" Margin="0,6,0,0" />
+
+          <TextBlock Grid.Row="3" Grid.Column="0" Text="DATA" Style="{StaticResource T.Eyebrow}" Margin="0,6,0,0" />
+          <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding DataText}" Style="{StaticResource T.Name14}" Margin="0,6,0,0" />
+        </Grid>
+
+        <!-- ==================== links ==================== -->
+
+        <TextBlock Margin="0,48,0,0" Text="RULES THIS CLIENT IS BUILT AGAINST" Style="{StaticResource T.Eyebrow}" />
+
+        <ItemsControl Margin="0,16,0,0" ItemsSource="{Binding Links}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Button Background="Transparent"
+                      BorderThickness="0"
+                      MinHeight="48"
+                      HorizontalContentAlignment="Stretch"
+                      Cursor="Hand"
+                      Command="{Binding Command}"
+                      AutomationProperties.AutomationId="AboutLink">
+                <Button.Template>
+                  <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd"
+                            Background="Transparent"
+                            BorderBrush="{StaticResource B.LineSoft}"
+                            BorderThickness="{StaticResource H.RuleBottom}"
+                            SnapsToDevicePixels="True">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding Label}"
+                                   Style="{StaticResource T.Name14}"
+                                   FontWeight="Medium" />
+                        <TextBlock Grid.Column="1"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding Note}"
+                                   Style="{StaticResource T.Desc13}"
+                                   Foreground="{StaticResource B.Text3}" />
+                      </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                      <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="TextBlock.Foreground" Value="{StaticResource B.Accent}" />
+                      </Trigger>
+                    </ControlTemplate.Triggers>
+                  </ControlTemplate>
+                </Button.Template>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

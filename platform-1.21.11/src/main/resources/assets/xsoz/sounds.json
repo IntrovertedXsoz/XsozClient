@@ -1,0 +1,8 @@
+{
+  "intro_music": {
+    "category": "music",
+    "sounds": [
+      { "name": "minecraft:music/game/calm3", "stream": true }
+    ]
+  }
+}

@@ -1,0 +1,121 @@
+<Window x:Class="Xsoz.Launcher.Views.InstallerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Xsoz Client Setup"
+        Width="560" Height="720" ResizeMode="CanMinimize"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource B.Bg}"
+        Icon="/Assets/Icon/xsoz.ico"
+        FontFamily="{StaticResource F.Ui}">
+  <Window.Resources>
+    <Style x:Key="Inst.Button" TargetType="Button">
+      <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+      <Setter Property="Background" Value="{StaticResource B.Raised}" />
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="Padding" Value="18,10" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="b" Property="Opacity" Value="0.85" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="b" Property="Opacity" Value="0.4" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="Inst.Primary" TargetType="Button" BasedOn="{StaticResource Inst.Button}">
+      <Setter Property="Background" Value="{StaticResource B.Accent}" />
+      <Setter Property="Foreground" Value="{StaticResource B.OnAccent}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="Padding" Value="18,14" />
+    </Style>
+  </Window.Resources>
+
+  <Grid Margin="32,26,32,24">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <!-- header -->
+    <StackPanel Grid.Row="0" Orientation="Horizontal">
+      <Image Source="/Assets/Icon/xsoz-256.png" Width="84" Height="84" RenderOptions.BitmapScalingMode="HighQuality" />
+      <StackPanel Margin="18,6,0,0" VerticalAlignment="Center">
+        <TextBlock Text="XSOZ CLIENT" FontFamily="{StaticResource F.Display}" FontSize="30" Foreground="{StaticResource B.Accent}" />
+        <TextBlock Text="Installer" FontSize="15" Foreground="{StaticResource B.Text}" Opacity="0.7" Margin="2,2,0,0" />
+      </StackPanel>
+    </StackPanel>
+
+    <!-- step 1: where Minecraft is, then install -->
+    <StackPanel x:Name="SetupPanel" Grid.Row="1" Margin="0,24,0,0">
+      <TextBlock TextWrapping="Wrap" FontSize="14" Foreground="{StaticResource B.Text}" LineHeight="21">
+        This adds <Run FontWeight="SemiBold">Xsoz Client</Run> as a new version in your official
+        <Run FontWeight="SemiBold">Minecraft Launcher</Run>. Your worlds, mods and other versions are not touched.
+      </TextBlock>
+
+      <TextBlock Text="Your Minecraft folder" Margin="0,22,0,6" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource B.Text}" />
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <Border Background="{StaticResource B.Surface}" CornerRadius="8" Padding="12,9">
+          <TextBlock x:Name="PathText" FontFamily="{StaticResource F.Mono}" FontSize="12" Foreground="{StaticResource B.Text}"
+                     TextTrimming="CharacterEllipsis" />
+        </Border>
+        <Button x:Name="BrowseButton" Grid.Column="1" Margin="8,0,0,0" Style="{StaticResource Inst.Button}" Content="Browse..." Click="Browse_Click" />
+      </Grid>
+      <TextBlock x:Name="PathStatus" Margin="2,8,0,0" TextWrapping="Wrap" FontSize="13" LineHeight="19" />
+
+      <Button x:Name="InstallButton" Margin="0,26,0,0" Style="{StaticResource Inst.Primary}" Content="Install" Click="Install_Click" />
+      <ProgressBar x:Name="Progress" Margin="0,16,0,0" Height="6" IsIndeterminate="True" Visibility="Collapsed"
+                   Foreground="{StaticResource B.Accent}" Background="{StaticResource B.Surface}" BorderThickness="0" />
+      <TextBlock x:Name="WorkText" Margin="2,10,0,0" TextWrapping="Wrap" FontSize="13" Foreground="{StaticResource B.Text}" Opacity="0.8" />
+      <TextBlock x:Name="ErrorText" Margin="2,10,0,0" TextWrapping="Wrap" FontSize="13" LineHeight="19" Foreground="{StaticResource B.Warn}" />
+    </StackPanel>
+
+    <!-- step 2: done, and exactly where to find it -->
+    <StackPanel x:Name="DonePanel" Grid.Row="1" Margin="0,24,0,0" Visibility="Collapsed">
+      <TextBlock Text="Installed!" FontSize="26" FontWeight="SemiBold" Foreground="{StaticResource B.Accent}" />
+      <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" FontSize="15" Foreground="{StaticResource B.Text}" LineHeight="22">
+        Xsoz Client is now one of your <Run FontWeight="SemiBold">Minecraft versions</Run>, inside the
+        official <Run FontWeight="SemiBold">Minecraft Launcher</Run> (the normal one you already use). Here's how to play it:
+      </TextBlock>
+      <Border Margin="0,16,0,0" Background="{StaticResource B.Surface}" CornerRadius="10" Padding="18,14">
+        <StackPanel>
+          <TextBlock TextWrapping="Wrap" FontSize="14" Foreground="{StaticResource B.Text}" LineHeight="21">
+            <Run FontWeight="Bold" Foreground="{StaticResource B.Accent}">1.</Run> Open the official <Run FontWeight="SemiBold">Minecraft Launcher</Run> and go to <Run FontWeight="SemiBold">Minecraft: Java Edition</Run>.
+          </TextBlock>
+          <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" FontSize="14" Foreground="{StaticResource B.Text}" LineHeight="21">
+            <Run FontWeight="Bold" Foreground="{StaticResource B.Accent}">2.</Run> Next to the big green <Run FontWeight="SemiBold">PLAY</Run> button, click the version picker and choose <Run FontWeight="SemiBold">Xsoz Client</Run>.
+          </TextBlock>
+          <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" FontSize="14" Foreground="{StaticResource B.Text}" LineHeight="21">
+            <Run FontWeight="Bold" Foreground="{StaticResource B.Accent}">3.</Run> Press <Run FontWeight="SemiBold">PLAY</Run>. The first start takes a minute while Minecraft downloads its files.
+          </TextBlock>
+        </StackPanel>
+      </Border>
+      <TextBlock Margin="0,14,0,0" TextWrapping="Wrap" FontSize="13" Foreground="{StaticResource B.Text}" Opacity="0.7" LineHeight="19"
+                 Text="Can't see it? Look in the launcher's Installations tab - it's listed there as Xsoz Client, with a black hole icon." />
+      <TextBlock x:Name="DoneDetail" Margin="0,10,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource B.Text}" Opacity="0.55" />
+      <StackPanel Orientation="Horizontal" Margin="0,22,0,0">
+        <Button Style="{StaticResource Inst.Primary}" Content="Open the Minecraft Launcher" Click="OpenLauncher_Click" />
+        <Button Margin="10,0,0,0" Style="{StaticResource Inst.Button}" Content="Close" Click="Close_Click" />
+      </StackPanel>
+      <TextBlock x:Name="OpenText" Margin="2,10,0,0" TextWrapping="Wrap" FontSize="13" Foreground="{StaticResource B.Text}" Opacity="0.8" />
+    </StackPanel>
+
+    <TextBlock Grid.Row="2" FontSize="11" Foreground="{StaticResource B.Text}" Opacity="0.45" TextWrapping="Wrap"
+               Text="Not an official Mojang or Microsoft product." />
+  </Grid>
+</Window>

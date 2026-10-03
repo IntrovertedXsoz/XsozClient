@@ -1,0 +1,2 @@
+Inter (https://rsms.me/inter) and Monocraft (https://github.com/IdreesInc/Monocraft) are
+licensed under the SIL Open Font License 1.1. Monocraft is used for display text only.

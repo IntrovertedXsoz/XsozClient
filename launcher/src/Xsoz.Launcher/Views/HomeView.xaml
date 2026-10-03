@@ -1,0 +1,441 @@
+﻿<UserControl x:Class="Xsoz.Launcher.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="clr-namespace:Xsoz.Launcher.Views"
+             xmlns:c="clr-namespace:Xsoz.Launcher.Controls"
+             xmlns:vm="clr-namespace:Xsoz.Launcher.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:HomeViewModel}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+
+  <!--
+    HOME. One column, 600px wide, centred, and nothing in it that is not the launch.
+
+    Top to bottom: the profile chip in the top bar, the version card, the primary button, the
+    status line. The install block REPLACES the button in place rather than appearing over it,
+    which is the design's rule: a button that turns into its own progress indicator never
+    leaves a dead control where the action was.
+
+    The block's six ticks and its percentage come from the real InstallService stage. Where the
+    service does not know a finer name the row says what it does know; nothing here is
+    synthesised to make the block look busier.
+  -->
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*" />
+      <RowDefinition Height="120" />
+    </Grid.RowDefinitions>
+
+    <Grid Grid.Row="0">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <v:TopBarView Grid.Row="0" ShowCompactPlay="False" />
+
+      <!-- The hero column. Centred vertically inside the space the top bar leaves, and padded at
+           the bottom so the status line never sits on the last row of pixels. -->
+      <Grid Grid.Row="1"
+            MaxWidth="600"
+            Margin="0"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Center">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ==================== version card ==================== -->
+
+        <Border Grid.Row="0"
+                Padding="24"
+                Background="{StaticResource B.Surface}"
+                BorderBrush="{StaticResource B.Line}"
+                BorderThickness="{StaticResource H.Hair}"
+                SnapsToDevicePixels="True"
+                AutomationProperties.AutomationId="VersionCard">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" VerticalAlignment="Bottom">
+              <TextBlock Text="GAME VERSION" Style="{StaticResource T.Eyebrow}" />
+              <TextBlock Margin="0,16,0,0"
+                         Text="{Binding Version.Label}"
+                         Style="{StaticResource T.Display48}"
+                         AutomationProperties.AutomationId="VersionNumber" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Bottom"
+                        AutomationProperties.AutomationId="VersionMeta">
+              <StackPanel Margin="0,0,32,0">
+                <TextBlock Text="LOADER" Style="{StaticResource T.Eyebrow}" />
+                <TextBlock Margin="0,8,0,0"
+                           Text="{Binding LoaderText}"
+                           Style="{StaticResource T.Name14}"
+                           FontWeight="Medium" />
+              </StackPanel>
+              <StackPanel>
+                <TextBlock Text="JAVA" Style="{StaticResource T.Eyebrow}" />
+                <TextBlock Margin="0,8,0,0"
+                           Text="{Binding JavaText}"
+                           Style="{StaticResource T.Name14}"
+                           FontWeight="Medium" />
+              </StackPanel>
+            </StackPanel>
+          </Grid>
+        </Border>
+
+<!-- ==================== the primary call to action ====================
+
+             THE OFFICIAL LAUNCHER PATH. This is the one the product exists for. It provisions
+             Fabric and the mod layer into the user's own %APPDATA%\.minecraft under a namespaced
+             version id and a 'xsoz-client' profile, and the official Minecraft launcher then signs
+             the user in and launches it. Nothing here authenticates: this launcher reads no
+             credentials and holds no token.
+
+             It is refused outright while the official launcher is running, because two writers on
+             launcher_profiles.json is how a profile store gets truncated. The refusal is one calm
+             line with a Re-check beside it and never a dialog. -->
+        <Border Grid.Row="1"
+                Margin="0,24,0,0"
+                Padding="20,16"
+                Background="{StaticResource B.Surface}"
+                BorderBrush="{StaticResource B.Line}"
+                BorderThickness="{StaticResource H.Hair}"
+                SnapsToDevicePixels="True"
+                AutomationProperties.AutomationId="VanillaInstallCard">
+          <StackPanel>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+
+              <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                <TextBlock Text="PLAY WITH YOUR MINECRAFT ACCOUNT" Style="{StaticResource T.Eyebrow}" />
+                <TextBlock Margin="0,8,0,0"
+                           Text="{Binding NoCliNotice}"
+                           Style="{StaticResource T.Desc13}"
+                           Foreground="{StaticResource B.Text2}"
+                           TextWrapping="Wrap"
+                           AutomationProperties.AutomationId="NoCliNotice" />
+              </StackPanel>
+
+              <Button Grid.Column="1"
+                      Margin="16,0,0,0"
+                      VerticalAlignment="Center"
+                      Style="{StaticResource Btn.Ghost}"
+                      Content="Re-check"
+                      Command="{Binding ReCheckLauncherCommand}"
+                      Visibility="{Binding ShowReCheck, Converter={StaticResource Cv.Bool}}"
+                      AutomationProperties.AutomationId="ReCheckLauncherButton" />
+            </Grid>
+
+            <TextBlock Margin="0,12,0,0"
+                       Text="{Binding LauncherStateLine}"
+                       Style="{StaticResource T.Caption12}"
+                       Foreground="{StaticResource B.Text3}"
+                       TextWrapping="Wrap"
+                       AutomationProperties.AutomationId="LauncherStateLine" />
+
+            <TextBlock Margin="0,8,0,0"
+                       Text="{Binding ProvisionLine}"
+                       Style="{StaticResource T.Desc13}"
+                       Foreground="{StaticResource B.Text2}"
+                       TextWrapping="Wrap"
+                       Visibility="{Binding HasProvisionLine, Converter={StaticResource Cv.Bool}}"
+                       AutomationProperties.AutomationId="ProvisionLine" />
+          </StackPanel>
+        </Border>
+
+        <!-- ==================== the acceptance gate ====================
+
+             Not in the design. Kept because it is a real, existing product step - the Minecraft
+             EULA has to be accepted before the first launch - and dropping a legal acceptance
+             step to make a screenshot match a mockup is not a design decision, it is a
+             regression. It is drawn in the design's own hint idiom, it sits above the button,
+             and it disappears for good once accepted, at which point Home is exactly the
+             three-block mockup. -->
+
+        <Border Grid.Row="2"
+                Margin="0,16,0,0"
+                Padding="20,16"
+                Background="{StaticResource B.Surface}"
+                BorderBrush="{StaticResource B.Line}"
+                BorderThickness="{StaticResource H.Hair}"
+                SnapsToDevicePixels="True"
+                Visibility="{Binding ShowDisclaimerGate, Converter={StaticResource Cv.Bool}}"
+                AutomationProperties.AutomationId="DisclaimerGate">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap"
+                       Style="{StaticResource T.Desc13}"
+                       Text="Playing means you accept the Minecraft EULA and the Usage Guidelines, and you are responsible for them on every server." />
+            <CheckBox Grid.Column="1"
+                      Margin="24,0,0,0"
+                      VerticalAlignment="Center"
+                      Style="{StaticResource Chk.Block}"
+                      IsChecked="{Binding DisclaimerAccepted, Mode=TwoWay}"
+                      Content="I accept"
+                      AutomationProperties.AutomationId="DisclaimerCheckbox" />
+          </Grid>
+        </Border>
+
+        <!-- ==================== primary + hand-off ==================== -->
+
+        <Grid Grid.Row="3" Margin="0,16,0,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+
+          <Button Grid.Column="0"
+                  HorizontalAlignment="Stretch"
+                  Style="{StaticResource Btn.Play}"
+                  Command="{Binding ProvisionForVanillaCommand}"
+                  IsEnabled="{Binding IsLaunchingVanilla, Converter={StaticResource CvInverse}}"
+                  AutomationProperties.AutomationId="VanillaInstallButton"
+                  AutomationProperties.Name="Install for the Minecraft Launcher">
+            <c:TrackedText Text="{Binding ProvisionLabel}"
+                           Tracking="60"
+                           DisplayFontFamily="{StaticResource F.Display}"
+                           DisplayFontSize="{StaticResource D.24}"
+                           DisplayFontWeight="Bold"
+                           VerticalAlignment="Center" />
+          </Button>
+
+          <Button Grid.Column="2"
+                  VerticalAlignment="Stretch"
+                  Style="{StaticResource Btn.Ghost}"
+                  Command="{Binding OpenVanillaLauncherCommand}"
+                  Content="OPEN LAUNCHER"
+                  AutomationProperties.AutomationId="OpenVanillaLauncherButton"
+                  AutomationProperties.Name="Open the Minecraft Launcher" />
+        </Grid>
+
+        <!-- ==================== the documented fallback ====================
+
+             Kept, not deprecated. This is a second, self-contained path: our own Fabric instance
+             under %LOCALAPPDATA%\XsozClient, provisioned and started by this launcher, offline,
+             with no account at all. It is proven on this machine, and it does not depend on
+             anybody else's GUI being openable - which is exactly the dependency the primary path
+             carries. -->
+        <TextBlock Grid.Row="4"
+                   Margin="0,16,0,0"
+                   Text="Fallback"
+                   Style="{StaticResource T.Eyebrow}"
+                   AutomationProperties.AutomationId="FallbackHeading" />
+
+        <!-- ==================== the fallback call to action ==================== -->
+
+        <Button Grid.Row="5"
+                Margin="0,8,0,0"
+                HorizontalAlignment="Stretch"
+                Style="{StaticResource Btn.Play}"
+                Command="{Binding PlayOrInstallCommand}"
+                IsEnabled="{Binding PlayEnabled}"
+                AutomationProperties.AutomationId="HomePlayButton"
+                AutomationProperties.Name="Provision and play the self-managed fallback">
+          <c:TrackedText Text="{Binding PlayLabel}"
+                         Tracking="100"
+                         DisplayFontFamily="{StaticResource F.Display}"
+                         DisplayFontSize="{StaticResource D.32}"
+                         DisplayFontWeight="Bold"
+                         VerticalAlignment="Center" />
+        </Button>
+
+        <!-- ==================== the install block ====================
+
+             The same 96px height as the button it replaces, so nothing moves when the install
+             starts. Top row: the step name left, the percentage right in the display face. Below
+             it a 20px band of 10px blocks with 2px gaps, filled to the real fraction. -->
+        <Border Grid.Row="6"
+                Height="96"
+                Margin="0,24,0,0"
+                Padding="24,16,24,0"
+                Background="{StaticResource B.Surface}"
+                BorderBrush="{StaticResource B.Line}"
+                BorderThickness="{StaticResource H.Hair}"
+                SnapsToDevicePixels="True"
+                Visibility="{Binding IsInstalling, Converter={StaticResource Cv.Bool}}"
+                AutomationProperties.AutomationId="InstallBlock">
+          <StackPanel>
+            <Grid Height="32">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0"
+                         VerticalAlignment="Center"
+                         Text="{Binding InstallStepName}"
+                         FontSize="{StaticResource U.16}"
+                         FontWeight="SemiBold"
+                         Foreground="{StaticResource B.Text}"
+                         TextTrimming="CharacterEllipsis"
+                         AutomationProperties.AutomationId="InstallStepName" />
+              <TextBlock Grid.Column="1"
+                         VerticalAlignment="Center"
+                         Text="{Binding InstallPercentText}"
+                         FontFamily="{StaticResource F.Display}"
+                         FontSize="{StaticResource D.24}"
+                         FontWeight="Bold"
+                         Foreground="{StaticResource B.Accent}"
+                         TextOptions.TextFormattingMode="Display"
+                         AutomationProperties.AutomationId="InstallPercent" />
+            </Grid>
+            <c:BlockBar Height="20"
+                        Margin="0,8,0,0"
+                        Fraction="{Binding InstallFraction, Mode=OneWay}"
+                        BlockBrush="{StaticResource B.Accent}"
+                        EmptyBrush="{StaticResource B.SegEmpty}"
+                        AutomationProperties.AutomationId="InstallProgress" />
+          </StackPanel>
+        </Border>
+
+        <!-- ==================== step ticks ====================
+
+             Only while the install is running, as in the design. Six bars 4px tall with the
+             step's name under, 8px apart, done in accent-deep, current in accent. -->
+
+        <ItemsControl Grid.Row="7"
+                      Margin="0,16,0,0"
+                      ItemsSource="{Binding Steps}"
+                      Visibility="{Binding IsInstalling, Converter={StaticResource Cv.Bool}}"
+                      AutomationProperties.AutomationId="InstallSteps">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Columns="6" Rows="1" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Margin="0,0,8,0">
+                <Border Height="4" SnapsToDevicePixels="True">
+                  <Border.Style>
+                    <Style TargetType="Border">
+                      <Setter Property="Background" Value="{StaticResource B.SegEmpty}" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsDone}" Value="True">
+                          <Setter Property="Background" Value="{StaticResource B.AccentDeep}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                          <Setter Property="Background" Value="{StaticResource B.Accent}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </Border.Style>
+                </Border>
+                <TextBlock Text="{Binding Label}">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource T.Caption12}">
+                      <Setter Property="Margin" Value="0,8,0,0" />
+                      <Setter Property="FontWeight" Value="Medium" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsDone}" Value="True">
+                          <Setter Property="Foreground" Value="{StaticResource B.Text2}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                          <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- ==================== status line ==================== -->
+
+        <StackPanel Grid.Row="8"
+                    Margin="0,16,0,0"
+                    MinHeight="20"
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal"
+                    AutomationProperties.AutomationId="StatusLine">
+          <!--
+            A problem is a hollow 6px square and one plain sentence, never a dialog and never a
+            red anything. The big button above is still the retry, because the install is
+            idempotent and a second dialog asking whether to try again is a worse version of the
+            same question.
+          -->
+          <StackPanel Orientation="Horizontal"
+                      Visibility="{Binding HasProblem, Converter={StaticResource Cv.Bool}}">
+            <Border Style="{StaticResource Hollow}" />
+            <c:DottedText Margin="8,0,0,0"
+                          VerticalAlignment="Center"
+                          FontSize="{StaticResource U.13}"
+                          LineHeight="20"
+                          Segments="{Binding StatusSegments}"
+                          DimBrush="{StaticResource B.Text3}" />
+            <Button Margin="8,0,0,0"
+                    Style="{StaticResource Btn.Ghost}"
+                    Content="Try again"
+                    Command="{Binding PlayOrInstallCommand}"
+                    AutomationProperties.AutomationId="TryAgainButton" />
+          </StackPanel>
+
+          <c:DottedText VerticalAlignment="Center"
+                        FontSize="{StaticResource U.13}"
+                        LineHeight="20"
+                        Segments="{Binding StatusSegments}"
+                        DimBrush="{StaticResource B.Text3}"
+                        Visibility="{Binding HasProblem, Converter={StaticResource CvInverse}}" />
+        </StackPanel>
+
+        <!-- A quiet Cancel under the block, as in the design. -->
+        <Button Grid.Row="9"
+                Margin="0,16,0,0"
+                HorizontalAlignment="Center"
+                Style="{StaticResource Btn.GhostMuted}"
+                Content="Cancel"
+                Command="{Binding CancelInstallCommand}"
+                Visibility="{Binding IsInstalling, Converter={StaticResource Cv.Bool}}"
+                AutomationProperties.AutomationId="CancelInstallButton" />
+      </Grid>
+    </Grid>
+
+    <!--
+      THE SKYLINE. A flat blocky silhouette along the bottom edge, in sky, which is one step
+      above the page background. It is the only decoration in the product, it is 60 whole-pixel
+      columns of four heights, and it is a Viewbox with UniformToFill so it crops the way the
+      mockup's preserveAspectRatio="xMidYMax slice" does when the window is wider or narrower
+      than 1440.
+    -->
+    <Viewbox Grid.Row="1"
+             Height="120"
+             Stretch="UniformToFill"
+             StretchDirection="DownOnly"
+             VerticalAlignment="Bottom"
+             IsHitTestVisible="False"
+             AutomationProperties.AutomationId="Skyline">
+      <Canvas Width="1440" Height="120" Background="Transparent">
+        <Path Data="{StaticResource Skyline}" Fill="{StaticResource B.Sky}" />
+      </Canvas>
+    </Viewbox>
+  </Grid>
+</UserControl>

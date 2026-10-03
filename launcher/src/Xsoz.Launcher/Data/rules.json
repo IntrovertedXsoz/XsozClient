@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "note": "Compliance tier metadata. Tier is an evidence/permission grade, not a quality grade, and it is read from this file rather than hard-coded in the UI so the rules can change without a launcher release.",
+  "tiers": [
+    {
+      "id": "A",
+      "name": "Allowlisted",
+      "glyph": "A",
+      "colourKey": "tierA",
+      "meaning": "Named on the target server's allowlist, or is a vanilla setting the launcher merely surfaces. Changing it alters how the client draws, allocates or collects - never what the game does."
+    },
+    {
+      "id": "B",
+      "name": "Declare first",
+      "glyph": "B",
+      "colourKey": "tierB",
+      "meaning": "Legal in the sense that it changes nothing observable by a server, but it is a visible change to what you can see. Show it in your staff message rather than hoping nobody asks."
+    },
+    {
+      "id": "C",
+      "name": "Unavailable",
+      "glyph": "C",
+      "colourKey": "tierC",
+      "meaning": "Fails the 'does not alter or automate your gameplay and does not provide any combat advantage' test. Not toggleable in any build. A C tier is a refusal, not a default-off."
+    }
+  ],
+  "categories": [
+    { "id": "performance", "name": "Performance", "blurb": "Frame-time work. All of it is on the server allowlist and none of it touches a packet." },
+    { "id": "hud", "name": "HUD", "blurb": "Read-outs and overlays. Draw budget only." },
+    { "id": "visual", "name": "Visual", "blurb": "How the world is drawn. Every one of these is a visibility trade, not a free win." },
+    { "id": "qol", "name": "Quality of life", "blurb": "Things that remove friction without adding information." },
+    { "id": "coaching", "name": "Coaching", "blurb": "Measurement and drill feedback. Local only, never uploaded." },
+    { "id": "media", "name": "Media", "blurb": "Recording and staging tools for your own clips and stills." }
+  ]
+}

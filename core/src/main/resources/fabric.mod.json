@@ -1,0 +1,29 @@
+{
+  "_COMMENT": [
+    "PLACEHOLDER. NOT A SHIPPABLE MOD METADATA FILE.",
+    "",
+    "This file exists only so the resource layout of `core` matches what a loader will",
+    "eventually expect, and so the JSON is parsed by something rather than rotting.",
+    "",
+    "The REAL `fabric.mod.json` belongs to the platform modules (platform-1.8.9 and",
+    "platform-1.21.11), because it must declare one entrypoint per pole and each pole",
+    "pins a different loader, different mappings and a different Fabric API line.",
+    "`core` is a plain java-library: it is not a mod and is never loaded by a game.",
+    "",
+    "Jar-in-JAR wiring (`jars` / `include`, used to bundle Fabric API into our mod) comes",
+    "with the platform modules too. Fabric API is version-keyed per Minecraft version and",
+    "cannot be bundled once for both poles.",
+    "",
+    "What eventually lands here per pole: schemaVersion, id, version, name, environment,",
+    "entrypoints -> the pole's XsozClientPlatform, depends -> fabric-api for that pole,",
+    "custom -> minLauncherVersion, and the META-INF/services entry that names the single",
+    "PlatformAdapter implementation. Nothing above is written yet."
+  ],
+  "schemaVersion": 1,
+  "id": "xsozclient-core-placeholder",
+  "version": "0.1.0-SNAPSHOT",
+  "name": "XsozClient Core (PLACEHOLDER - NOT A MOD)",
+  "description": "Pure-Java core library. This metadata file is a placeholder; the shipped mod metadata lives in the platform modules.",
+  "license": "MIT",
+  "environment": "client"
+}

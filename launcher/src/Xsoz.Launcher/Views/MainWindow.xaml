@@ -1,0 +1,382 @@
+﻿<Window x:Class="Xsoz.Launcher.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Xsoz.Launcher.ViewModels"
+        xmlns:v="clr-namespace:Xsoz.Launcher.Views"
+        xmlns:c="clr-namespace:Xsoz.Launcher.Controls"
+        Title="XsozClient"
+        Width="1280" Height="820"
+        MinWidth="1020" MinHeight="660"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="False"
+        Background="{StaticResource B.Bg}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Ideal"
+        FontFamily="{StaticResource F.Ui}"
+        FontSize="{StaticResource U.13}"
+        d:DataContext="{d:DesignInstance vm:MainViewModel}"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d">
+
+  <!--
+    THE WINDOW, AS THE DESIGN SPECIFIES IT.
+
+    Two rows and nothing else: a 40px title bar, and the shell below it. There is no footer.
+    The design has no footer, and the three things a footer used to carry each have a home the
+    design chose for them: the status line sits under the primary button on Home, the account
+    state sits in the rail under the chip, and the legally required line is its own bordered
+    block on About. The one thing with nowhere else to go is the unhandled-error line, and it
+    takes the rail's own quiet-line slot - which is the pattern the design already uses for a
+    failed sign-in. No modal box, ever: see App.OnDispatcherUnhandledException.
+
+    CaptionHeight is 40 rather than 44 so the drag region is exactly the title strip and not one
+    pixel of the nav rail underneath it. The framework owns the region and computes the drag,
+    double-click maximise and snap layouts itself; the window buttons opt back into hit-testing
+    through the IsHitTestVisibleInChrome marker.
+  -->
+  <WindowChrome.WindowChrome>
+    <WindowChrome CaptionHeight="40"
+                  CornerRadius="0"
+                  GlassFrameThickness="0"
+                  ResizeBorderThickness="6"
+                  UseAeroCaptionButtons="False" />
+  </WindowChrome.WindowChrome>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="40" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <!-- ============================ title bar ============================ -->
+
+    <Border Grid.Row="0"
+            x:Name="TitleBar"
+            Background="{StaticResource B.Rail}"
+            BorderBrush="{StaticResource B.Line}"
+            BorderThickness="{StaticResource H.HairBottom}"
+            MouseLeftButtonDown="OnTitleBarMouseDown">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0"
+                    Orientation="Horizontal"
+                    Margin="16,0,0,0"
+                    VerticalAlignment="Center">
+          <!--
+            The brand mark: a 3x3 grid of 8px squares with a 2px gap, the third one in
+            mark-dim. Geometry rather than an asset, like every icon in this design.
+          -->
+          <Grid Width="28" Height="28" VerticalAlignment="Center">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="8" />
+              <RowDefinition Height="2" />
+              <RowDefinition Height="8" />
+              <RowDefinition Height="2" />
+              <RowDefinition Height="8" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="8" />
+              <ColumnDefinition Width="2" />
+              <ColumnDefinition Width="8" />
+              <ColumnDefinition Width="2" />
+              <ColumnDefinition Width="8" />
+            </Grid.ColumnDefinitions>
+            <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource B.Accent}" />
+            <Border Grid.Row="0" Grid.Column="2" Background="{StaticResource B.Accent}" />
+            <Border Grid.Row="0" Grid.Column="4" Background="{StaticResource B.MarkDim}" />
+            <Border Grid.Row="2" Grid.Column="0" Background="{StaticResource B.Accent}" />
+            <Border Grid.Row="2" Grid.Column="2" Background="{StaticResource B.Accent}" />
+            <Border Grid.Row="2" Grid.Column="4" Background="{StaticResource B.Accent}" />
+            <Border Grid.Row="4" Grid.Column="0" Background="{StaticResource B.Accent}" />
+            <Border Grid.Row="4" Grid.Column="2" Background="{StaticResource B.Accent}" />
+            <Border Grid.Row="4" Grid.Column="4" Background="{StaticResource B.Accent}" />
+          </Grid>
+
+          <c:TrackedText Text="XSOZCLIENT"
+                         Margin="12,0,0,0"
+                         VerticalAlignment="Center"
+                         Tracking="80"
+                         DisplayFontFamily="{StaticResource F.Display}"
+                         DisplayFontSize="{StaticResource D.16}"
+                         DisplayFontWeight="Bold"
+                         Foreground="{StaticResource B.Text}"
+                         AutomationProperties.AutomationId="BrandWordmark" />
+
+          <Border Margin="12,0,0,0"
+                  Padding="6,4"
+                  VerticalAlignment="Center"
+                  BorderBrush="{StaticResource B.Line}"
+                  BorderThickness="{StaticResource H.Hair}"
+                  SnapsToDevicePixels="True">
+            <TextBlock Text="{Binding VersionText}"
+                       FontSize="{StaticResource U.12}"
+                       FontWeight="Medium"
+                       Foreground="{StaticResource B.Text3}" />
+          </Border>
+        </StackPanel>
+
+        <!-- The body of the strip is the drag region; the buttons opt back into hit-testing. -->
+        <StackPanel Grid.Column="2"
+                    Orientation="Horizontal"
+                    WindowChrome.IsHitTestVisibleInChrome="True">
+          <Button Style="{StaticResource Btn.Chrome}"
+                  Click="OnMinimize"
+                  AutomationProperties.AutomationId="WindowMinimize"
+                  AutomationProperties.Name="Minimise">
+            <Path Width="16" Height="16" Data="{StaticResource I.Min}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+          </Button>
+          <Button x:Name="MaxButton"
+                  Style="{StaticResource Btn.Chrome}"
+                  Click="OnToggleMaximize"
+                  AutomationProperties.AutomationId="WindowMaximize"
+                  AutomationProperties.Name="Maximise">
+            <Path Width="16" Height="16" Data="{StaticResource I.Max}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+          </Button>
+          <Button x:Name="CloseButton"
+                  Style="{StaticResource Btn.Chrome}"
+                  Click="OnClose"
+                  AutomationProperties.AutomationId="WindowClose"
+                  AutomationProperties.Name="Close">
+            <Path Width="16" Height="16" Data="{StaticResource I.Close}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ============================ body ============================ -->
+
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="224" />
+        <ColumnDefinition Width="{StaticResource H.PixelColumn}" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <!--
+        THE RAIL. Four items, 44px tall, 4px apart, with a 3px accent LEFT border on the active
+        one. The design uses border-left and not a fill or an underline, so the accent is on the
+        left edge; the item's own background goes to raised underneath it, which is what the
+        mockup's [aria-current=page] rule does.
+
+        The account chip and its two quiet lines live at the foot of the same rail, as in the
+        design. The chip says the official launcher owns the account. It does not name a player,
+        because this launcher cannot read one: it holds no credentials, contacts no authentication
+        endpoint, and asks the user for nothing.
+      -->
+      <Border Grid.Column="0" Background="{StaticResource B.Rail}">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <StackPanel Grid.Row="0"
+                      Margin="12,16,12,0"
+                      VerticalAlignment="Top"
+                      AutomationProperties.AutomationId="NavRail">
+            <RadioButton Style="{StaticResource Nav.Item}"
+                         GroupName="Nav"
+                         IsChecked="{Binding IsHome, Mode=TwoWay}"
+                         Command="{Binding NavigateCommand}" CommandParameter="Home"
+                         AutomationProperties.AutomationId="NavHome">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Path Data="{StaticResource I.Home}" Style="{StaticResource Nav.Icon}"
+                      AutomationProperties.AutomationId="NavHomeIcon" />
+                <TextBlock Text="Home" Style="{StaticResource Nav.Label}" />
+              </StackPanel>
+            </RadioButton>
+            <RadioButton Style="{StaticResource Nav.Item}"
+                         GroupName="Nav"
+                         Margin="0,4,0,0"
+                         IsChecked="{Binding IsMods, Mode=TwoWay}"
+                         Command="{Binding NavigateCommand}" CommandParameter="Mods"
+                         AutomationProperties.AutomationId="NavMods">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Path Data="{StaticResource I.Mods}" Style="{StaticResource Nav.Icon}"
+                      AutomationProperties.AutomationId="NavModsIcon" />
+                <TextBlock Text="Mods" Style="{StaticResource Nav.Label}" />
+              </StackPanel>
+            </RadioButton>
+            <RadioButton Style="{StaticResource Nav.Item}"
+                         GroupName="Nav"
+                         Margin="0,4,0,0"
+                         IsChecked="{Binding IsSettings, Mode=TwoWay}"
+                         Command="{Binding NavigateCommand}" CommandParameter="Settings"
+                         AutomationProperties.AutomationId="NavSettings">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Path Data="{StaticResource I.Settings}" Style="{StaticResource Nav.Icon}"
+                      AutomationProperties.AutomationId="NavSettingsIcon" />
+                <TextBlock Text="Settings" Style="{StaticResource Nav.Label}" />
+              </StackPanel>
+            </RadioButton>
+            <RadioButton Style="{StaticResource Nav.Item}"
+                         GroupName="Nav"
+                         Margin="0,4,0,0"
+                         IsChecked="{Binding IsAbout, Mode=TwoWay}"
+                         Command="{Binding NavigateCommand}" CommandParameter="About"
+                         AutomationProperties.AutomationId="NavAbout">
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Path Data="{StaticResource I.About}" Style="{StaticResource Nav.Icon}"
+                      AutomationProperties.AutomationId="NavAboutIcon" />
+                <TextBlock Text="About" Style="{StaticResource Nav.Label}" />
+              </StackPanel>
+            </RadioButton>
+          </StackPanel>
+
+          <!--
+          The account chip. The 32px square on the left is the only thing this change touches, and
+          it is not a new element: the letter the design puts there becomes the fallback, and a
+          skin head is drawn over it when one is available. Nothing else in the chip moves, and
+          nothing about what the chip SAYS changes - it still names who owns the account and still
+          hands off to the official launcher, because a head is a picture and not a sign-in.
+
+          The image is nearest-neighbour on purpose. A rendered head is eight texels of pixel art,
+          and WPF's default bilinear scaler turns a 128px fetch into a blur at exactly the 32px it
+          becomes legible at. Nearest-neighbour is also what makes it survive 125% and 150% DPI
+          without a filter pass over a face that is meant to be hard-edged.
+        -->
+        <StackPanel Grid.Row="1" Margin="12,0,12,16">
+            <Border Padding="12"
+                    Background="{StaticResource B.Surface}"
+                    BorderBrush="{StaticResource B.Line}"
+                    BorderThickness="{StaticResource H.Hair}"
+                    SnapsToDevicePixels="True"
+                    AutomationProperties.AutomationId="AccountChip">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0"
+                        Width="32" Height="32"
+                        Background="{StaticResource B.Line}"
+                        ClipToBounds="True"
+                        SnapsToDevicePixels="True">
+                  <Grid>
+                    <TextBlock Text="{Binding AccountInitial}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource B.Text}"
+                               Visibility="{Binding HasAccountHead, Converter={StaticResource CvInverse}}" />
+                    <Image x:Name="AccountHeadImage"
+                           Source="{Binding AccountHead}"
+                           Width="32" Height="32"
+                           Stretch="Fill"
+                           RenderOptions.BitmapScalingMode="NearestNeighbor"
+                           SnapsToDevicePixels="True"
+                           ToolTip="{Binding AccountHeadNotice}"
+                           Visibility="{Binding HasAccountHead, Converter={StaticResource Cv.Bool}}"
+                           AutomationProperties.AutomationId="AccountHead"
+                           AutomationProperties.Name="Skin head" />
+                  </Grid>
+                </Border>
+
+                <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding AccountName}"
+                             FontSize="{StaticResource U.14}"
+                             FontWeight="SemiBold"
+                             Foreground="{StaticResource B.Text}"
+                             TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding AccountSubtext}"
+                             FontSize="{StaticResource U.12}"
+                             Foreground="{StaticResource B.Text3}"
+                             TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <Button Grid.Column="2"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource Btn.Ghost}"
+                        FontSize="{StaticResource U.13}"
+                        Content="{Binding SignInLabel}"
+                        Command="{Binding OpenLauncherCommand}"
+                        AutomationProperties.AutomationId="OpenLauncherButton"
+                        AutomationProperties.Name="Open the Minecraft Launcher" />
+              </Grid>
+            </Border>
+
+            <!--
+              The two quiet lines. One states who owns the account - the official launcher does,
+              and this one reads no credentials and holds no token, so there is nothing to sign in
+              to here; the other reports an unhandled interface error. Both are a hollow 6px square
+              and one plain sentence in muted text, because a fact is not an alarm, and neither of
+              them is a dialog. The error line is the only channel an unhandled dispatcher exception
+              has to the interface at all, and the log behind it keeps every occurrence in full.
+            -->
+            <StackPanel Margin="4,12,4,0"
+                        Visibility="{Binding HasAccountMessage, Converter={StaticResource Cv.Bool}}">
+              <StackPanel Orientation="Horizontal">
+                <Border Style="{StaticResource Hollow}" />
+                <TextBlock Margin="8,0,0,0"
+                           FontSize="{StaticResource U.12}"
+                           TextWrapping="Wrap"
+                           Foreground="{StaticResource B.Text2}"
+                           Text="{Binding AccountMessage}"
+                           AutomationProperties.AutomationId="AccountMessage" />
+              </StackPanel>
+            </StackPanel>
+
+            <StackPanel Margin="4,8,4,0"
+                        Visibility="{Binding HasUiError, Converter={StaticResource Cv.Bool}}">
+              <StackPanel Orientation="Horizontal">
+                <Border Style="{StaticResource Hollow}" />
+                <TextBlock Margin="8,0,0,0"
+                           FontSize="{StaticResource U.12}"
+                           TextWrapping="Wrap"
+                           Foreground="{StaticResource B.Text2}"
+                           Text="{Binding UiErrorMessage}"
+                           AutomationProperties.AutomationId="UiErrorLine" />
+              </StackPanel>
+            </StackPanel>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="1" Background="{StaticResource B.Line}" />
+
+      <!-- The four screens, one visible at a time, with the drawer over the top of them. -->
+      <Grid x:Name="ScreenHost" Grid.Column="2" Background="{StaticResource B.Bg}">
+        <v:HomeView x:Name="HomeScreen" DataContext="{Binding Home}" Visibility="Visible" />
+        <v:ModsView x:Name="ModsScreen" DataContext="{Binding Mods}" Visibility="Collapsed" />
+        <v:SettingsView x:Name="SettingsScreen" DataContext="{Binding Settings}" Visibility="Collapsed" />
+        <v:AboutView x:Name="AboutScreen" DataContext="{Binding About}" Visibility="Collapsed" />
+
+        <!--
+          THE PROFILE DRAWER. An overlay, not a fifth destination: a scrim over the whole shell
+          below the title bar, and a 480px panel on the right edge with an edge left border.
+          It holds the profile list, the chips and the sensitivity ramp.
+
+          Its Visibility is the window's own IsDrawerShown rather than the view model's flag, and
+          that is the whole of the difference between a drawer that appears and one that travels.
+          The view model says whether the drawer is open; the window owns the 180ms slide and
+          keeps the layer up for exactly as long as the slide takes, so the panel never vanishes
+          before it has finished leaving and never appears before it has arrived. The slide is a
+          TranslateTransform on the panel and an Opacity on the scrim - see Themes\Motion.cs.
+        -->
+        <Grid x:Name="DrawerLayer"
+              Panel.ZIndex="10"
+              Visibility="{Binding IsDrawerShown, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource Cv.Bool}}">
+          <Border x:Name="DrawerScrim"
+                  Background="{StaticResource B.Scrim}"
+                  AutomationProperties.AutomationId="ProfileScrim" />
+          <v:ProfilePanelView x:Name="Drawer"
+                              Width="480"
+                              HorizontalAlignment="Right"
+                              DataContext="{Binding ProfilePanel}"
+                              AutomationProperties.AutomationId="ProfileDrawer" />
+        </Grid>
+      </Grid>
+    </Grid>
+  </Grid>
+</Window>

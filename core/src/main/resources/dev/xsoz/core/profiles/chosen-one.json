@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "id": "chosen-one",
+  "name": "Chosen One's Profile",
+  "createdUtc": "2026-09-29T00:00:00Z",
+  "modifiedUtc": "2026-09-29T00:00:00Z",
+  "isDefault": true,
+  "provenance": {
+    "kind": "PUBLISHED_SETTINGS",
+    "sourceLabel": "YouTube @Marlowww video descriptions",
+    "sourceUrl": "https://www.youtube.com/@Marlowww/videos",
+    "retrievedUtc": "2026-09-29",
+    "note": "FOV 90 / DPI 2000 / Sensitivity 100%, published in three video descriptions spanning 2022-10-29 (P1uWDYbbZvk), 2024-10-05 (j1cLw2QnCGw) and 2025-06-14 (WC8e5p09xLU). The 0.744140625 cm/360 figure is DERIVED from vanilla's deg-per-count formula, 914.4 / (1.2 * (0.6*1.0 + 0.2)^3 * 2000), and is NOT published. Her keybinds, mouse, polling rate, monitor and every cycle timing are NOT published either, and none of them is guessed here."
+  },
+  "modules": {
+    "hud.totem-counter": {
+      "enabled": true,
+      "settings": {
+        "hud.totem-counter.show-carry-count": true,
+        "hud.totem-counter.style": "COMPACT"
+      }
+    },
+    "latency.crystal-release": {
+      "enabled": false,
+      "settings": {
+        "latency.crystal-release.release-timeout-millis": 1500
+      }
+    }
+  },
+  "keybinds": {
+    "hud.totem-counter": {
+      "key": "UNKNOWN"
+    },
+    "open-settings": {
+      "key": "RSHIFT",
+      "kind": "KEYBOARD",
+      "code": 344,
+      "modifiers": []
+    }
+  },
+  "hud": {
+    "scale": 1.0,
+    "elements": [
+      {
+        "id": "hud.totem-counter",
+        "anchor": "TOP_RIGHT",
+        "offsetXGu": -8.0,
+        "offsetYGu": -8.0,
+        "z": 100,
+        "order": 0,
+        "visible": true
+      }
+    ]
+  },
+  "sensitivity": {
+    "cmPer360": 0.744140625,
+    "mouseDpi": 2000,
+    "fovVertical": 90,
+    "fovRelativeMode": "PHYSICAL",
+    "rampStageIndex": 0
+  },
+  "complianceProfileId": "default-deny",
+  "coaching": {
+    "armedAddresses": [],
+    "autoPrune": true,
+    "chatCapture": false,
+    "mouseDebounceMillis": null
+  }
+}

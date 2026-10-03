@@ -1,0 +1,110 @@
+# ---------------------------------------------------------------------------
+# XsozClient - build output
+# ---------------------------------------------------------------------------
+build/
+*/build/
+*/*/build/
+.gradle/
+*/.gradle/
+out/
+*/out/
+bin/
+*/bin/
+
+# ---------------------------------------------------------------------------
+# Gradle
+# ---------------------------------------------------------------------------
+!gradle/wrapper/gradle-wrapper.jar
+.gradletasknamecache
+**/.gradletasknamecache
+
+# ---------------------------------------------------------------------------
+# IDE
+# ---------------------------------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+nb-configuration.xml
+*.swp
+*~
+
+# ---------------------------------------------------------------------------
+# Agent scratch space (never part of the product)
+# ---------------------------------------------------------------------------
+.agents/
+
+# ---------------------------------------------------------------------------
+# Local run directories - game instances, launcher output, per-developer data
+# ---------------------------------------------------------------------------
+run/
+runs/
+localrun/
+run-data/
+instances/
+.minecraft/
+xsozclient-local/
+*.log
+logs/
+
+# ---------------------------------------------------------------------------
+# Local secrets / machine-specific config. NEVER commit these.
+# ---------------------------------------------------------------------------
+local.properties
+gradle-local.properties
+.env
+.env.*
+*.jks
+*.keystore
+*.p12
+*.pfx
+secrets.properties
+
+# ---------------------------------------------------------------------------
+# Owner-only: Microsoft session acquisition for the XsozClient launcher.
+#
+# This file reuses the session the official Minecraft Launcher has already signed
+# in on this Windows account, decrypting its DPAPI-protected token material under
+# the current user's scope. The behaviour is kept for the machine owner; the
+# source is withheld from the public repository, because a routine whose purpose
+# is decrypting another application's stored credentials is the exact shape
+# credential-stealing malware is built from. See launcher/README.md.
+#
+# A public clone therefore builds and runs without it: SessionGate.cs defaults to
+# an acquirer that reports "no session", so the account chip reads Guest.
+# ---------------------------------------------------------------------------
+launcher/src/Xsoz.Launcher/Services/Session/MojangTokenAcquirer.cs
+
+# ---------------------------------------------------------------------------
+# OS noise
+# ---------------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# ---------------------------------------------------------------------------
+# Not part of the public repo: personal notes, old builds, the installer exe
+# (the installer is published on the GitHub Releases page instead)
+# ---------------------------------------------------------------------------
+MetaStuffMadeByMe/
+DoneClientHere/
+ExE for new installers/
+*.exe
+
+# .NET build cache
+obj/
+*/obj/
+
+# Only the client is public: research notes, design files, skins and helper scripts stay local
+docs/
+ClaudeDesign/
+XsozSkin/
+scripts/
+launcher/README.md
+launcher/docs-shots/

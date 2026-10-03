@@ -1,0 +1,151 @@
+﻿<UserControl x:Class="Xsoz.Launcher.Views.DiagnosticsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Xsoz.Launcher.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:DiagnosticsViewModel}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True">
+
+  <!--
+    THE LOG VIEWER, as the design's component 8 specifies it.
+
+    A segmented All | Problems filter on the left, Copy log and Open log folder on the right, then
+    280px of monospaced text on the near-black log background, one event per line, no wrapping
+    and nothing truncated. The box is focusable, so the whole pane is reachable from the
+    keyboard, and the copy button copies every line with access tokens already redacted on the
+    way in.
+
+    It lives at the foot of Settings, not behind a navigation item. Diagnostics is not a place;
+    it is the log, and the log is a thing you read while something is wrong.
+  -->
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="280" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <Grid Grid.Row="0" Margin="0,0,0,12">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+
+      <Border Grid.Column="0" Style="{StaticResource Seg.Shell}">
+        <StackPanel Orientation="Horizontal">
+          <RadioButton Style="{StaticResource Seg.Button}" GroupName="LogFilter" Content="All"
+                       IsChecked="{Binding MinimumLevelName, Mode=TwoWay, Converter={StaticResource CvLevel.All}}"
+                       AutomationProperties.AutomationId="LogFilterAll" />
+          <RadioButton x:Name="ProblemsSegment" Style="{StaticResource Seg.ButtonLast}" GroupName="LogFilter" Content="Problems"
+                       IsChecked="{Binding MinimumLevelName, Mode=TwoWay, Converter={StaticResource CvLevel.Warn}}"
+                       AutomationProperties.AutomationId="LogFilterProblems" />
+        </StackPanel>
+      </Border>
+
+      <StackPanel Grid.Column="2" Orientation="Horizontal">
+        <Button Style="{StaticResource Btn.SecondarySm}"
+                Content="Copy log"
+                Command="{Binding CopyAllCommand}"
+                AutomationProperties.AutomationId="CopyLogButton" />
+        <Button Margin="12,0,0,0"
+                Style="{StaticResource Btn.SecondarySm}"
+                Content="Open log folder"
+                Command="{Binding OpenLogFolderCommand}"
+                AutomationProperties.AutomationId="OpenLogFolderButton" />
+      </StackPanel>
+    </Grid>
+
+    <!--
+      One row per event: the time in the muted colour, the level in a fixed 48px column so the
+      messages line up, and the message. WARN is the only line that takes a colour of its own,
+      and it is the design's muted amber rather than a red.
+    -->
+    <Border Grid.Row="1"
+            Background="{StaticResource B.LogBg}"
+            BorderBrush="{StaticResource B.Line}"
+            BorderThickness="{StaticResource H.Hair}"
+            SnapsToDevicePixels="True"
+            Focusable="True"
+            FocusVisualStyle="{StaticResource Focus.Ring}"
+            AutomationProperties.AutomationId="LogBox"
+            AutomationProperties.Name="Launcher log">
+      <ScrollViewer Padding="16,12"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding Rows}"
+                      Focusable="False"
+                      AutomationProperties.AutomationId="LogRows">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="{Binding Time}"
+                           FontFamily="{StaticResource F.Mono}"
+                           FontSize="{StaticResource U.12}"
+                           Foreground="{StaticResource B.Text3}" />
+
+                <TextBlock Grid.Column="1"
+                           Width="48"
+                           Margin="12,0,12,0"
+                           Text="{Binding Level}"
+                           FontFamily="{StaticResource F.Mono}"
+                           FontSize="{StaticResource U.12}"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource B.Text3}">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="FontFamily" Value="{StaticResource F.Mono}" />
+                      <Setter Property="FontSize" Value="{StaticResource U.12}" />
+                      <Setter Property="FontWeight" Value="Bold" />
+                      <Setter Property="Foreground" Value="{StaticResource B.Text3}" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding Accent}" Value="accent">
+                          <Setter Property="Foreground" Value="{StaticResource B.Accent}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Accent}" Value="warn">
+                          <Setter Property="Foreground" Value="{StaticResource B.Warn}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Accent}" Value="error">
+                          <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+
+                <TextBlock Grid.Column="2"
+                           Text="{Binding Message}"
+                           FontFamily="{StaticResource F.Mono}"
+                           FontSize="{StaticResource U.12}"
+                           LineHeight="21"
+                           Foreground="{StaticResource B.Text2}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+
+    <StackPanel Grid.Row="2" Margin="0,12,0,0">
+      <TextBlock Text="{Binding Feedback}"
+                 TextWrapping="Wrap"
+                 Style="{StaticResource T.Desc13}"
+                 Visibility="{Binding Feedback, Converter={StaticResource Cv.StrToVis}}" />
+      <TextBlock Margin="0,6,0,0"
+                 Text="{Binding LogFilePath, StringFormat=Writing to {0}}"
+                 TextTrimming="CharacterEllipsis"
+                 Style="{StaticResource T.MonoValue12}"
+                 Foreground="{StaticResource B.Text3}" />
+    </StackPanel>
+  </Grid>
+</UserControl>

@@ -1,0 +1,133 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Xsoz.Launcher</RootNamespace>
+    <AssemblyName>XsozClient</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\Icon\xsoz.ico</ApplicationIcon>
+
+    <!-- Single-file, self-contained, compressed. WPF is NOT trim-compatible: PublishTrimmed stays off. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- Nothing about the machine it was built on goes into the exe: no debug info, no build paths. -->
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=/src</PathMap>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <InvariantGlobalization>false</InvariantGlobalization>
+
+    <Version>0.1.0</Version>
+    <Product>XsozClient Launcher</Product>
+    <Company>XsozClient</Company>
+    <Copyright>XsozClient. Not an official Mojang or Microsoft product.</Copyright>
+
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <NoWarn>$(NoWarn);CA1848;CA1031;CA2007</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      SIL OFL 1.1. Bundled unmodified; licence texts shipped verbatim in Licensing/.
+
+      Link="Fonts\..." is load-bearing, not tidiness. WPF only resolves an embedded font from a
+      family name like "Monocraft" when the resource's logical name sits under a top-level
+      `Fonts/` directory; with the files under `Assets/Fonts/` the lookup silently falls back to
+      a system font, and the whole design system's headline face quietly stops being Monocraft.
+    -->
+    <Resource Include="Assets\Fonts\*.ttf" Link="Fonts\%(Filename)%(Extension)" />
+    <Resource Include="Assets\Fonts\*.otf" Link="Fonts\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The in-game mod (platform-1.21.11), refreshed into Assets\Mod by that project's Gradle build
+      (`deployToLauncher`). Embedded rather than copied next to the exe so the single-file publish
+      still carries it. Provisioning writes it into the ISOLATED instance's mods folder only.
+    -->
+    <EmbeddedResource Include="Assets\Mod\xsozclient.jar" LogicalName="XsozMod.jar" Condition="Exists('Assets\Mod\xsozclient.jar')" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The data files and licence texts are ALSO built into the exe, so XsozClient.exe on its own is
+      a complete install: send just the exe to anyone and it works. A Data folder next to the exe,
+      when there is one, still wins (that's how they are edited and tested).
+    -->
+    <EmbeddedResource Include="Data\*.json" LogicalName="Data/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Licensing\*.txt" LogicalName="Licensing/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="THIRD-PARTY.md" LogicalName="THIRD-PARTY.md" />
+    <EmbeddedResource Include="Assets\Icon\xsoz-128.png" LogicalName="XsozProfileIcon.png" />
+    <Resource Include="Assets\Icon\xsoz-256.png" />
+    <Resource Include="Assets\Icon\xsoz.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Data\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Licensing\*.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="THIRD-PARTY.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!--
+    ============================================================================
+    THE TIER B DEFAULT GUARD. This target IS the guard, and it fails the build.
+    ============================================================================
+
+    The product rule (PROGRAM-DESCRIPTION.md): a tier B module is legal but visible, it has to be
+    declared to staff, and therefore it ships DEFAULT OFF. Data\modules.json had
+    visual.opaque_leaves at tier B with defaultEnabled: true, which is the rule and the data file
+    disagreeing in the direction that hides a declaration from the person who has to make it.
+    The value is now false, and this target stops it coming back.
+
+    HOW IT FAILS. The Error task aborts the build with MSB4057 and a message naming every
+    offending module id. There is no warning-only mode and no opt-out property, deliberately: a
+    guard that can be turned off is a comment.
+
+    HOW IT WORKS. The file is read as one string and matched with two bounded regular expressions,
+    one for each key order. Both are bounded to 600 characters, which is longer than any single
+    module object in this file and shorter than the distance between two consecutive tier keys, so
+    a match can only pair a "tier": "B" with a defaultEnabled inside the SAME object. That bound
+    is the whole correctness argument: an unbounded match would flag the first default-on of any
+    kind that happened to follow a tier B declaration, which is a false positive that trains people
+    to ignore the guard.
+
+    The same rule is checked a second time at startup by Services\ModulePolicy, because a build
+    machine and a shipped binary are not the same machine and a hand-edited Data folder next to
+    the executable is a real thing that happens.
+  -->
+  <Target Name="ValidateModuleTierDefaults" BeforeTargets="BeforeBuild">
+    <ReadLinesFromFile File="Data\modules.json">
+      <Output TaskParameter="Lines" ItemName="_ModuleRegistryLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <_ModuleRegistryText>@(_ModuleRegistryLines, ' ')  &#10;@(_ModuleRegistryLines, ' ')</_ModuleRegistryText>
+      <_TierBThenDefaultOn>$([System.Text.RegularExpressions.Regex]::IsMatch($(_ModuleRegistryText), '"tier"\s*:\s*"B"[^{}]{0,600}?"defaultEnabled"\s*:\s*true'))</_TierBThenDefaultOn>
+      <_DefaultOnThenTierB>$([System.Text.RegularExpressions.Regex]::IsMatch($(_ModuleRegistryText), '"defaultEnabled"\s*:\s*true[^{}]{0,600}?"tier"\s*:\s*"B"'))</_DefaultOnThenTierB>
+    </PropertyGroup>
+
+    <Error Condition="'$(_TierBThenDefaultOn)' == 'True' Or '$(_DefaultOnThenTierB)' == 'True'"
+           Code="XSOZ1001"
+           Text="Data\modules.json violates the product rule: a tier B module has defaultEnabled: true. Tier B is legal but visible - it has to be declared to staff - so it ships default-off. Set defaultEnabled to false on the tier B module(s) above. If you believe this rule is wrong for a specific module, change the rule in docs\PROGRAM-DESCRIPTION.md first, deliberately, not this file." />
+
+    <Message Importance="high" Text="Tier B default guard: modules.json checked, no default-on tier B module." Condition="'$(_TierBThenDefaultOn)' != 'True' And '$(_DefaultOnThenTierB)' != 'True'" />
+  </Target>
+
+</Project>

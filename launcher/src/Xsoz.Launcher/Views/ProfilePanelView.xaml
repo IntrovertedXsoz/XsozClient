@@ -1,0 +1,232 @@
+﻿<UserControl x:Class="Xsoz.Launcher.Views.ProfilePanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="clr-namespace:Xsoz.Launcher.Views"
+             xmlns:c="clr-namespace:Xsoz.Launcher.Controls"
+             xmlns:vm="clr-namespace:Xsoz.Launcher.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:ProfilePanelViewModel}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             IsVisibleChanged="OnIsVisibleChanged">
+
+  <!--
+    THE PROFILE DRAWER.
+
+    A 480px panel on the right edge over a scrim, with an edge left border. It is an overlay
+    and not a navigation destination: a destination would need a back affordance the design does
+    not have, and it would take the profile chip out of the top bar, which is the one place the
+    active profile is supposed to always be.
+
+    Top to bottom: the profile's name and its Default flag, the three key-value chips, the
+    sensitivity ramp, the profile list, and three actions along the foot.
+  -->
+  <Border Background="{StaticResource B.Surface}"
+          BorderBrush="{StaticResource B.Edge}"
+          BorderThickness="{StaticResource H.HairLeft}"
+          SnapsToDevicePixels="True">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="64" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <!-- ==================== head ==================== -->
+
+      <Grid Grid.Row="0"
+            Margin="24,0"
+            AutomationProperties.AutomationId="ProfileDrawerHeader">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Column="0"
+                   VerticalAlignment="Center"
+                   Text="Profile"
+                   Style="{StaticResource T.Display24}" />
+
+        <Button Grid.Column="1"
+                VerticalAlignment="Center"
+                Style="{StaticResource Btn.Icon}"
+                Command="{Binding DataContext.CloseProfilePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                AutomationProperties.AutomationId="CloseProfilePanel"
+                AutomationProperties.Name="Close the profile panel">
+          <Path Width="16" Height="16" Data="{StaticResource I.Close}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+        </Button>
+      </Grid>
+
+      <Border Grid.Row="0"
+              VerticalAlignment="Bottom"
+              Height="1"
+              Background="{StaticResource B.Line}"
+              SnapsToDevicePixels="True" />
+
+      <!-- ==================== body ==================== -->
+
+      <ScrollViewer Grid.Row="1"
+                    Padding="24,24,24,24"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="{Binding ProfileName}"
+                       Style="{StaticResource T.Display24}"
+                       AutomationProperties.AutomationId="ActiveProfileName" />
+            <Border Margin="12,0,0,0"
+                    Style="{StaticResource Tag.Accent}"
+                    Visibility="{Binding IsDefault, Converter={StaticResource Cv.Bool}}">
+              <TextBlock Text="DEFAULT"
+                         FontSize="{StaticResource U.12}"
+                         FontWeight="Medium"
+                         Foreground="{StaticResource B.Accent}" />
+            </Border>
+          </StackPanel>
+
+          <!--
+            The three chips. The cm/360 one follows the ramp stage, so the number a player reads
+            next to FOV and DPI is the one the ladder is actually on - not the one it was on when
+            the drawer opened.
+          -->
+          <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding Chips}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Style="{StaticResource Chip.KeyValue}" Margin="0,0,8,8">
+                  <!-- Two TextBlocks rather than two Runs: a WPF Run has no Margin, and the
+                       chip needs the value flush against the label's right edge. -->
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding Key}"
+                               FontSize="{StaticResource U.13}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource B.Text}" />
+                    <TextBlock Margin="6,0,0,0"
+                               Text="{Binding Value}"
+                               FontSize="{StaticResource U.13}"
+                               FontWeight="Medium"
+                               Foreground="{StaticResource B.Text3}" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <StackPanel Margin="0,24,0,0">
+            <v:SensitivityRampView x:Name="Ramp" DataContext="{Binding Ramp}" />
+          </StackPanel>
+
+          <StackPanel Margin="0,24,0,0">
+            <TextBlock Text="YOUR PROFILES" Style="{StaticResource T.Eyebrow}" />
+            <ItemsControl Margin="0,16,0,0" ItemsSource="{Binding Rows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Grid>
+                    <Border MinHeight="56" SnapsToDevicePixels="True">
+                      <Border.Style>
+                        <Style TargetType="Border">
+                          <Setter Property="Background" Value="Transparent" />
+                          <Setter Property="BorderBrush" Value="{StaticResource B.LineSoft}" />
+                          <Setter Property="BorderThickness" Value="{StaticResource H.RuleBottom}" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                              <Setter Property="Background" Value="{StaticResource B.Raised}" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Border.Style>
+
+                      <Grid Margin="16,10,12,10">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button Grid.Column="0"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                HorizontalContentAlignment="Left"
+                                Command="{Binding DataContext.UseCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                CommandParameter="{Binding}"
+                                AutomationProperties.AutomationId="UseProfile">
+                          <StackPanel>
+                            <TextBlock Text="{Binding Name}" Style="{StaticResource T.Name14Strong}" />
+                            <TextBlock Margin="0,4,0,0"
+                                       Text="{Binding Detail}"
+                                       Style="{StaticResource T.Caption12}" />
+                          </StackPanel>
+                        </Button>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                          <Button Style="{StaticResource Btn.GhostMuted}"
+                                  FontSize="{StaticResource U.12}"
+                                  Content="Duplicate"
+                                  Command="{Binding DataContext.DuplicateCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                  AutomationProperties.AutomationId="DuplicateProfile" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+
+                    <!-- The 3px accent bar on the active profile's left edge. -->
+                    <Border Width="3"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Stretch"
+                            SnapsToDevicePixels="True">
+                      <Border.Style>
+                        <Style TargetType="Border">
+                          <Setter Property="Background" Value="{StaticResource B.Accent}" />
+                          <Setter Property="Visibility" Value="Collapsed" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                              <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Border.Style>
+                    </Border>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- ==================== foot ==================== -->
+
+      <Grid Grid.Row="2"
+            Margin="24,16"
+            AutomationProperties.AutomationId="ProfileDrawerFooter">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Button Grid.Column="0"
+                Style="{StaticResource Btn.Secondary}"
+                Content="New profile"
+                Command="{Binding CreateCommand}"
+                AutomationProperties.AutomationId="NewProfileButton" />
+        <Button Grid.Column="2"
+                Style="{StaticResource Btn.Secondary}"
+                Content="Export JSON"
+                Command="{Binding ExportCommand}"
+                AutomationProperties.AutomationId="ExportProfileButton" />
+      </Grid>
+
+      <Border Grid.Row="2"
+              VerticalAlignment="Top"
+              Height="1"
+              Background="{StaticResource B.Line}"
+              SnapsToDevicePixels="True" />
+    </Grid>
+  </Border>
+</UserControl>

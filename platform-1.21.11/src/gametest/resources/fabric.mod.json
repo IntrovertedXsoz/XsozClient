@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "xsozclient-gametest",
+  "version": "1.0.0",
+  "name": "Xsoz Client GameTests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": ["dev.xsoz.client.gametest.TrainingGameTests"],
+    "fabric-client-gametest": ["dev.xsoz.client.gametest.XsozClientGameTest"]
+  },
+  "depends": {
+    "xsozclient": "*",
+    "fabric-gametest-api-v1": "*"
+  }
+}
