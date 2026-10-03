@@ -1,130 +1,74 @@
 <div align="center">
-
 <img src="assets/readme/logo.png" alt="Xsoz Client logo" width="140" />
 
 # Xsoz Client
-
-**The Minecraft PvP client that actually teaches you to fight.**
-
-Slow-motion tutorials with your own keys on screen. Drills that train one skill at a time.
-Bots that play by a real player's rules. All inside Minecraft 1.21.11.
-
-[![Download](https://img.shields.io/badge/Download-Installer-4CD765?style=for-the-badge&logo=windows&logoColor=white)](../../releases/latest)
-&nbsp;
-![Minecraft](https://img.shields.io/badge/Minecraft-1.21.11-3C8527?style=for-the-badge)
-&nbsp;
-![Fabric](https://img.shields.io/badge/Fabric-0.19-DBD0B4?style=for-the-badge)
-&nbsp;
-![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?style=for-the-badge)
-
-<img src="assets/readme/main-menu.jpg" alt="The Xsoz main menu: a black hole with Minecraft blocks orbiting it" width="900" />
-
 </div>
 
----
+Xsoz Client is a Minecraft 1.21.11 Fabric mod for learning PvP. It is mostly made for Crystal PvP, with some Sword PvP too. (for now. I'll be adding a bunch of other stuff later.) It has lessons, tutorials, drills and bots you can fight. To install it, download the installer from the [releases page](../../releases/latest) and run it.
 
-## What is it?
+<img src="assets/readme/main-menu.jpg" alt="Main menu" width="900" />
 
-Xsoz Client is a mod for Minecraft: Java Edition that turns the game into a PvP training ground.
-Instead of just giving you features, it **shows you how to do things, lets you try them, and tells
-you what to fix**. It's made for Crystal PvP first, with Sword PvP too.
+## Install
 
-| | |
-|---|---|
-| 🎓 **Learn** | Short lessons in plain words: placing crystals, getting your totem back, holes, anchors, pearls, crits, W-taps, shields. |
-| ▶️ **Tutorials** | The game slows down, your own keys light up as each one is "pressed", it pauses to explain, then you try it yourself. |
-| 🎯 **Training** | Drills that train one skill each, with 3 levels and a Level Up test. Pass them to climb the ranks. |
-| 🤖 **Free Roam** | Fight bots as long as you like, from Beginner to Godlike (and a Hacker mode that cheats). |
-| 📊 **Fight reports** | Every fight gets a grade, with what went wrong and which drill fixes it. |
-| 🛠️ **Mods** | Hide explosion particles, zoom, toggle sprint, a cleaner crosshair, a HUD editor and more. |
+1. Download `Xsoz-Client-Setup.exe` from the [latest release](../../releases/latest).
+2. Run it. Windows might say "Windows protected your PC" because the file isn't signed. Click More info, then Run anyway.
+3. The installer looks for your `.minecraft` folder. If it can't find it, it asks you to pick it. Press Install.
+4. Open the normal Minecraft Launcher. Pick "Xsoz Client" in the version list next to the PLAY button, then press PLAY.
 
----
+You need Minecraft: Java Edition and the official launcher. Xsoz Client runs from its own folder, so your worlds, mods and other versions aren't touched.
 
-## 🎓 Tutorials that slow the game down
+## Tutorials
 
-Pick a lesson with a ▶ and press **Watch and try**. Everything slows down, a caption tells you
-what's happening, and the keys you'd press light up on screen. At the important moment the world
-stops so you can read why it works. Then the scene resets and it's your turn.
+Most lessons in the Learn tab have a "Watch and try" button. The game slows down, the keys being pressed show up on screen, and it pauses at the important parts to explain what happened. After that it resets and you try it yourself.
+
+There are tutorials for placing and breaking crystals, getting your totem back, surrounding, anchors, anchor double tap, crystal double tap, hit crystal, crits, W-tapping and breaking shields. (I'll be adding more soon.)
 
 <p align="center">
-  <img src="assets/readme/tutorial-slowmo.jpg" alt="Hit crystal tutorial in slow motion, with the W and Sprint keys lit up" width="49%" />
-  <img src="assets/readme/tutorial-shield.jpg" alt="Shield break tutorial, paused to explain how an axe disables a shield" width="49%" />
+  <img src="assets/readme/tutorial-slowmo.jpg" alt="Hit crystal tutorial" width="49%" />
+  <img src="assets/readme/tutorial-shield.jpg" alt="Shield break tutorial" width="49%" />
 </p>
 <p align="center">
-  <img src="assets/readme/tutorial-pause.jpg" alt="Anchor double tap tutorial, paused right after the first anchor explodes" width="70%" />
+  <img src="assets/readme/tutorial-pause.jpg" alt="Anchor double tap tutorial" width="70%" />
 </p>
 
-Tutorials: placing and breaking a crystal · getting your totem back · surrounding · anchors ·
-anchor double tap · crystal double tap · hit crystal · critical hits · W-tapping · breaking shields.
+## Learn
 
----
-
-## 📚 Lessons in plain words
-
-No jargon walls. Every PvP word is explained the first time it shows up.
+The Learn tab has short lessons split into Basics, Crystal and Sword. Mace and UHC are coming later.
 
 <p align="center">
-  <img src="assets/readme/learn.jpg" alt="The Learn tab with Crystal PvP lessons" width="900" />
+  <img src="assets/readme/learn.jpg" alt="Learn tab" width="900" />
 </p>
 
----
+## Training
 
-## 🤖 Bots that fight like players
+Each drill trains one thing and has 3 levels. When you pass the Level Up test you go up a rank. After every fight you get a grade, what you did wrong, and which drill to do to fix it.
 
-Bots in Free Roam follow the same rules you do: they only click blocks they can see, reach 4.5
-blocks for blocks and 3 for hits, sprint only when moving forward, and look where they're going.
-Good ones follow your pearls when they see them. Each one has a personality: some love anchors,
-some rush you, some sit in holes.
+## Free Roam
+
+Free Roam lets you fight bots for as long as you want. You can choose:
+
+- Weapons: crystals, anchors, sword, axe and shield, mace, elytra
+- Map: Stone, Grass, Craters, Hills, Ruins, Obsidian, Desert, Birch forest, Snowy taiga, Nether
+- Ground: a thin floor, deep ground, or a full world down to bedrock
+- Teams: free for all, bots vs you, or bots on your team
+- Bot level: Beginner, Casual, Good, Pro, Godlike or Hacker. They can all be the same level, mixed, or Adaptive, which gets harder when you win and easier when you lose.
+
+Bots play by normal player rules. They have 4.5 blocks of reach for blocks and 3 for hits, they can only click what they can see, and they only sprint forward. Better bots follow your pearls. Each bot also has a personality, so some like anchors, some rush you and some sit in holes. Hacker is the only level that cheats.
+
+There is also a watch mode where you fly around and watch the bots fight each other, if you're into that.
 
 <p align="center">
-  <img src="assets/readme/free-roam.jpg" alt="Free Roam setup: weapons, maps, ground, teams, bot level and personalities" width="49%" />
-  <img src="assets/readme/fight.jpg" alt="A Free Roam fight with a kill feed and scoreboard" width="49%" />
+  <img src="assets/readme/free-roam.jpg" alt="Free Roam setup" width="49%" />
+  <img src="assets/readme/fight.jpg" alt="A fight" width="49%" />
 </p>
 
-- **Mix any weapons**: Crystals, Anchors, Sword, Axe + shield, Mace, Elytra
-- **10 maps**: Stone, Grass, Craters, Hills, Ruins, Obsidian, Desert, Birch forest, Snowy taiga, Nether
-- **Real ground**: a thin floor in the sky, deep ground with ores, or a full world down to bedrock
-- **Teams**: free for all, bots vs you, or bots on your team
-- **Levels**: all the same, mixed, or *Adaptive* (better when you win, easier when you lose)
-- **Watch mode**: fly around and watch the bots fight, or click one to see through its eyes
+## Mods
 
----
+It also comes with some small mods: hide explosion particles, zoom, toggle sprint, a cleaner crosshair and a HUD editor. Any other mods you'd like to add directly, you can suggest it in the issues tab.
 
-## ✨ A proper first launch
+## DIY
 
-The first time you open it, a black hole forms while *Sweden* plays. It asks your name and how good
-you are, offers a one-minute tour, then dives you into the main menu.
+- Mod: `./gradlew :platform-1.21.11:build` (needs JDK 25)
+- Installer: `dotnet publish launcher/src/Xsoz.Launcher/Xsoz.Launcher.csproj -c Release` (needs .NET 10, Windows only)
 
-<p align="center">
-  <img src="assets/readme/intro.jpg" alt="The intro: XSOZ appears above the black hole" width="49%" />
-  <img src="assets/readme/intro-skill.jpg" alt="The intro asks how good you are at PvP" width="49%" />
-</p>
-
----
-
-## ⬇️ Install
-
-1. Download **`Xsoz-Client-Setup.exe`** from the [latest release](../../releases/latest).
-2. Run it. Windows may show *"Windows protected your PC"* because the file isn't code-signed.
-   Click **More info**, then **Run anyway**.
-3. The installer finds your `.minecraft` folder (or asks you to pick it). Press **Install**.
-4. Open the official **Minecraft Launcher**. Next to the green **PLAY** button, choose
-   **Xsoz Client** from the version list and press **PLAY**.
-
-You need Minecraft: Java Edition and the official Minecraft Launcher. Xsoz Client lives in its own
-folder: your worlds, mods and other versions are not touched. Training drills run in your own
-single-player worlds and put everything back exactly as it was when you stop.
-
----
-
-## 🔧 Building from source
-
-- **The mod**: `./gradlew :platform-1.21.11:build` (Gradle needs JDK 25)
-- **The installer**: `dotnet publish launcher/src/Xsoz.Launcher/Xsoz.Launcher.csproj -c Release`
-  (.NET 10, Windows)
-
----
-
-<div align="center">
 <sub>Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</sub>
-</div>
